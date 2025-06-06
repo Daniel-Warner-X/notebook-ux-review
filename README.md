@@ -1,6 +1,19 @@
-# Running the Jupyter Notebook UX Reviewer App Locally
+# UX Reviews for Jupyter Notebooks
 
-Follow these steps to set up and run the React application on your local machine.
+This is a design experiment / prototype to illustrate the idea of HITL GenAI-powered UX reviews for Jupyter Notebooks. It shows a basic flow of upload file > get a review based on [this framework](https://github.com/instructlab/examples/blob/main/Notebook-UX-Review-Template.md).
+
+The next steps would likely be:
+
+- [ ] Add a 'fix this' button that calls out to a model for suggestions. Those suggestions can then either be accepted, rejected, or edited.
+- [ ] The ability to download the updated Notebook
+- [ ] Integration into an existing workflow (ex. IDE plug-in, GitHub action)
+- [ ] Ability to run the notebook
+- [ ] Other things I haven't thought of...
+
+
+It started in Gemini Canvas and continued in Cursor.
+
+## Run it locally
 
 ## Prerequisites
 
