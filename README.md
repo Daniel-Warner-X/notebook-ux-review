@@ -5,12 +5,14 @@
 
 This is a design experiment illustrates the idea of HITL GenAI-powered UX reviews for Jupyter Notebooks. It shows a basic flow of upload file > get a review based on [this framework](https://github.com/instructlab/examples/blob/main/Notebook-UX-Review-Template.md).
 
+The goal is to make a little Reviewer / Fixer agent for notebook UX.
+
 The next steps would likely be:
 
-- [ ] Add a 'fix this' button that calls out to a model for suggestions. Those suggestions can then either be accepted, rejected, or edited.
-- [ ] The ability to download the updated Notebook
-- [ ] Integration into an existing workflow (ex. IDE plug-in, GitHub action)
-- [ ] Ability to run the notebook
+- [ ] Add a 'fix this' button that calls out to a model for suggestions that can then either be accepted, rejected, or edited.
+- [ ] Download the updated Notebook
+- [ ] Integrate into an existing workflow (ex. IDE plug-in, GitHub action)
+- [ ] Run the notebook for debug purposes (prob hard to do)
 - [ ] Other things I haven't thought of...
 
 
