@@ -41,8 +41,10 @@ npm install
 
 ### 3. Install Tailwind CSS and Dependencies
 
+It's important to use this older version of tailwind. The difference between tailwind 3.x and 4 is vast. After many painful hours I finally figured out Gemini creates prototypes with an old version of tailwind.
+
 ```sh
-npm install -D tailwindcss postcss autoprefixer
+npm install -D tailwindcss@3.4.17 postcss autoprefixer
 npx tailwindcss init -p
 ```
 
