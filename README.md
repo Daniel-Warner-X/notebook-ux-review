@@ -1,3 +1,8 @@
+![image](https://github.com/user-attachments/assets/dacfcf9d-d8e3-4abe-906c-ae969b832d19)
+
+[Screen Recordingm](https://github.com/user-attachments/assets/ed775f60-09f6-4471-a46a-5500aa986d26)
+
+
 # UX Reviews for Jupyter Notebooks
 
 This is a design experiment illustrates the idea of HITL GenAI-powered UX reviews for Jupyter Notebooks. It shows a basic flow of upload file > get a review based on [this framework](https://github.com/instructlab/examples/blob/main/Notebook-UX-Review-Template.md).
