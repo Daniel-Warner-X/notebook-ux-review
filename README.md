@@ -1,6 +1,6 @@
 # UX Reviews for Jupyter Notebooks
 
-This is a design experiment / prototype to illustrate the idea of HITL GenAI-powered UX reviews for Jupyter Notebooks. It shows a basic flow of upload file > get a review based on [this framework](https://github.com/instructlab/examples/blob/main/Notebook-UX-Review-Template.md).
+This is a design experiment illustrates the idea of HITL GenAI-powered UX reviews for Jupyter Notebooks. It shows a basic flow of upload file > get a review based on [this framework](https://github.com/instructlab/examples/blob/main/Notebook-UX-Review-Template.md).
 
 The next steps would likely be:
 
@@ -11,9 +11,7 @@ The next steps would likely be:
 - [ ] Other things I haven't thought of...
 
 
-It started in Gemini Canvas and continued in Cursor.
-
-## Run it locally
+It started in Gemini Canvas and continued in Cursor. To run it locally...
 
 ## Prerequisites
 
