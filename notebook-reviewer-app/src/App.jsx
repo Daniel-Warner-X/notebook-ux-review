@@ -5,6 +5,8 @@ import { marked } from 'marked'; // Ensure marked is imported here
 // Now accepts 'highlightedCellIndices' prop to apply highlighting
 const NotebookRenderer = ({ notebook, highlightedCellIndices = [] }) => {
   const cellRefs = useRef([]); // To hold refs to each cell for scrolling
+  const [editedNotebook, setEditedNotebook] = useState(null);
+  const [editingCell, setEditingCell] = React.useState(null);
 
   if (!notebook || !notebook.cells) {
     return <div className="text-gray-500 text-center py-8">No notebook loaded for rendering.</div>;
@@ -26,67 +28,113 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [] }) => {
     }
   }, [highlightedCellIndices]);
 
+  // Handler for editing cell text
+  const handleEditCell = (index, newText) => {
+    if (!notebook) return;
+    const newCells = notebook.cells.map((cell, i) =>
+      i === index ? { ...cell, source: [newText] } : cell
+    );
+    setEditedNotebook({ ...notebook, cells: newCells });
+  };
+
   return (
     <div>
       {notebook.cells.map((cell, index) => {
         const isHighlighted = highlightedCellIndices.includes(index);
+        const isEditing = isHighlighted && editingCell === index;
         let cellText = cell.source.join("");
+        // Ref and state for dynamic minHeight
+        const contentRef = useRef(null);
+        const [minHeight, setMinHeight] = React.useState(undefined);
+        React.useLayoutEffect(() => {
+          if (isEditing && contentRef.current) {
+            setMinHeight(contentRef.current.offsetHeight);
+          }
+        }, [isEditing]);
         return (
           <div
             key={index}
             ref={el => cellRefs.current[index] = el}
-            className={`mb-4 p-3 border transition-all duration-300 ease-in-out ${isHighlighted ? 'border-blue-500 ring-2 ring-blue-300 bg-blue-50' : 'border-gray-200'}`}
+            className={`mb-4 p-3 border transition-all duration-300 ease-in-out ${
+              isHighlighted
+                ? 'border-blue-500 ring-2 ring-blue-300 bg-blue-50 dark:border-blue-400 dark:ring-blue-700 dark:bg-blue-900/40'
+                : 'border-gray-200 dark:border-gray-700'
+            }`}
+            tabIndex={isHighlighted ? 0 : -1}
+            onClick={() => { if (isHighlighted) setEditingCell(index); }}
           >
             {/* Render Markdown Cells */}
-            {cell.cell_type === 'markdown' && (
+            {cell.cell_type === 'markdown' && isEditing ? (
+              <textarea
+                className="w-full min-h-[80px] bg-transparent border-none outline-none resize-vertical text-base font-sans dark:text-gray-100 dark:bg-transparent"
+                value={cellText}
+                autoFocus
+                onBlur={() => setEditingCell(null)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); setEditingCell(null); } }}
+                onChange={e => handleEditCell(index, e.target.value)}
+                style={minHeight ? { minHeight } : {}}
+              />
+            ) : cell.cell_type === 'markdown' ? (
               <div
-                className="prose prose-sm md:prose-base max-w-none"
+                ref={isHighlighted ? contentRef : undefined}
+                className="prose prose-sm md:prose-base max-w-none dark:prose-invert dark:text-gray-100"
                 dangerouslySetInnerHTML={{ __html: marked.parse(cellText) }}
               ></div>
-            )}
-            {cell.cell_type === 'markdown' && (
-              <pre className="text-gray-900 bg-gray-100 p-2 rounded-md text-sm whitespace-pre-wrap">{cellText}</pre>
+            ) : null}
+            {cell.cell_type === 'markdown' && !isEditing && (
+              <pre className="text-gray-900 bg-gray-100 dark:text-gray-100 dark:bg-gray-800 p-2 rounded-md text-sm whitespace-pre-wrap">{cellText}</pre>
             )}
             {/* Render Code Cells */}
-            {cell.cell_type === 'code' && (
-              <div>
-                <pre className="bg-gray-800 text-white p-2 rounded-md overflow-x-auto text-sm">
-                  <code>{cellText}</code>
-                </pre>
-                {/* Render Code Cell Outputs (only if fully revealed) */}
-                {cell.outputs && cell.outputs.length > 0 && (
-                  <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md text-sm">
-                    <h4 className="font-semibold text-gray-700 mb-1">Output:</h4>
-                    {cell.outputs.map((output, outputIndex) => (
-                      <div key={outputIndex} className="mb-1 last:mb-0">
-                        {/* Stream Output (stdout/stderr) */}
-                        {output.output_type === 'stream' && (
-                          <pre className={`whitespace-pre-wrap ${output.name === 'stderr' ? 'text-red-600' : 'text-gray-900'}`}>{output.text.join('')}</pre>
+            {cell.cell_type === 'code' && isEditing ? (
+              <textarea
+                className="w-full min-h-[80px] bg-gray-800 dark:bg-gray-900 text-white dark:text-cyan-200 border-none outline-none resize-vertical font-mono text-sm"
+                value={cellText}
+                autoFocus
+                onBlur={() => setEditingCell(null)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); setEditingCell(null); } }}
+                onChange={e => handleEditCell(index, e.target.value)}
+                style={minHeight ? { minHeight } : {}}
+              />
+            ) : cell.cell_type === 'code' ? (
+              <pre
+                ref={isHighlighted ? contentRef : undefined}
+                className="bg-gray-800 text-white dark:bg-gray-900 dark:text-cyan-200 p-2 rounded-md overflow-x-auto text-sm"
+              >
+                <code>{cellText}</code>
+              </pre>
+            ) : null}
+            {/* Render Code Cell Outputs (only if fully revealed) */}
+            {cell.outputs && cell.outputs.length > 0 && (
+              <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm text-gray-900 dark:text-gray-100">
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Output:</h4>
+                {cell.outputs.map((output, outputIndex) => (
+                  <div key={outputIndex} className="mb-1 last:mb-0">
+                    {/* Stream Output (stdout/stderr) */}
+                    {output.output_type === 'stream' && (
+                      <pre className={`whitespace-pre-wrap ${output.name === 'stderr' ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>{output.text.join('')}</pre>
+                    )}
+                    {/* Execute Result / Display Data */}
+                    {(output.output_type === 'execute_result' || output.output_type === 'display_data') && output.data && (
+                      <div>
+                        {output.data['text/html'] && (
+                          <div dangerouslySetInnerHTML={{ __html: output.data['text/html'].join('') }} className="text-gray-900 dark:text-gray-100"></div>
                         )}
-                        {/* Execute Result / Display Data */}
-                        {(output.output_type === 'execute_result' || output.output_type === 'display_data') && output.data && (
-                          <div>
-                            {output.data['text/html'] && (
-                              <div dangerouslySetInnerHTML={{ __html: output.data['text/html'].join('') }} className="text-gray-900"></div>
-                            )}
-                            {!output.data['text/html'] && output.data['text/plain'] && (
-                              <pre className="text-gray-900 whitespace-pre-wrap">{output.data['text/plain'].join('')}</pre>
-                            )}
-                            {output.data['image/png'] && (
-                              <img src={`data:image/png;base64,${output.data['image/png']}`} alt="Notebook Output" className="max-w-full h-auto rounded-md border border-gray-300" />
-                            )}
-                            {output.data['image/jpeg'] && (
-                              <img src={`data:image/jpeg;base64,${output.data['image/jpeg']}`} alt="Notebook Output" className="max-w-full h-auto rounded-md border border-gray-300" />
-                            )}
-                            {output.data['image/svg+xml'] && (
-                              <div dangerouslySetInnerHTML={{ __html: output.data['image/svg+xml'].join('') }} className="max-w-full h-auto rounded-md border border-gray-300"></div>
-                            )}
-                          </div>
+                        {!output.data['text/html'] && output.data['text/plain'] && (
+                          <pre className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{output.data['text/plain'].join('')}</pre>
+                        )}
+                        {output.data['image/png'] && (
+                          <img src={`data:image/png;base64,${output.data['image/png']}`} alt="Notebook Output" className="max-w-full h-auto rounded-md border border-gray-300" />
+                        )}
+                        {output.data['image/jpeg'] && (
+                          <img src={`data:image/jpeg;base64,${output.data['image/jpeg']}`} alt="Notebook Output" className="max-w-full h-auto rounded-md border border-gray-300" />
+                        )}
+                        {output.data['image/svg+xml'] && (
+                          <div dangerouslySetInnerHTML={{ __html: output.data['image/svg+xml'].join('') }} className="max-w-full h-auto rounded-md border border-gray-300"></div>
                         )}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
+                ))}
               </div>
             )}
           </div>
@@ -109,6 +157,8 @@ const App = () => {
   const revealTimeoutRef = useRef(null);
   // Spinner state
   const [showSpinner, setShowSpinner] = useState(false);
+  // Add state to hold edited notebook cells
+  const [editedNotebook, setEditedNotebook] = useState(null);
 
   // When loading starts, reset visibleRows
   useEffect(() => {
@@ -152,6 +202,11 @@ const App = () => {
     } else {
       setShowSpinner(false);
     }
+  }, [loadedNotebook]);
+
+  // When loadedNotebook changes, reset editedNotebook
+  useEffect(() => {
+    setEditedNotebook(loadedNotebook);
   }, [loadedNotebook]);
 
   // Define the UX guidelines and their descriptions (unchanged)
@@ -476,110 +531,136 @@ const App = () => {
   };
 
   return (
-    <div className="w-screen h-screen min-h-0 min-w-0 bg-gray-100 font-sans text-gray-800 flex justify-center items-stretch">
-      <div className="w-full h-full max-w-none bg-white rounded-none shadow-none p-0 flex flex-row space-x-0">
-
-        {/* Left Panel: Notebook Renderer and Content Area */}
-        <div className="w-1/2 flex flex-col h-full border-r border-gray-300">
-          <div
-            className="flex-1 bg-gray-50 hover:bg-gray-100 transition-colors duration-200 relative overflow-y-auto"
-            onDrop={handleFileDrop}
-            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-            onDragEnter={(e) => e.stopPropagation()}
-            onDragLeave={(e) => e.stopPropagation()}
-          >
-            {isLoading ? (
-              <div className="absolute inset-0 flex items-center justify-center p-4">
-                <p className="text-blue-500 font-semibold text-lg">Loading notebook...</p>
+    <>
+      <style>{`
+        @keyframes scan-line {
+          0% { top: 0%; }
+          12.5% { top: 90%; }
+          25% { top: 0%; }
+          37.5% { top: 90%; }
+          50% { top: 0%; }
+          62.5% { top: 90%; }
+          75% { top: 0%; }
+          87.5% { top: 90%; }
+          100% { top: 0%; }
+        }
+      `}</style>
+      <div className="w-screen h-screen min-h-0 min-w-0 bg-gradient-to-br from-blue-50 via-purple-50 to-teal-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 font-sans text-gray-800 dark:text-gray-100 flex justify-center items-center p-6">
+        <div className="w-full h-full flex flex-row items-stretch gap-4">
+          {/* Left Panel: Notebook Renderer and Content Area */}
+          <div className="w-1/2 flex flex-col h-full bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 p-8 transition-transform duration-300 hover:scale-[1.02] hover:shadow-2xl relative overflow-hidden">
+            {/* Scanning line animation */}
+            {showSpinner && (
+              <div className="pointer-events-none absolute left-0 w-full h-full z-20">
+                <div
+                  className="absolute left-0 w-full h-2 bg-gradient-to-r from-transparent via-blue-400 to-transparent dark:via-cyan-400 opacity-90 shadow-xl rounded-full"
+                  style={{
+                    animation: 'scan-line 3.2s cubic-bezier(0.4,0,0.2,1) 0s 1',
+                  }}
+                ></div>
               </div>
-            ) : loadedNotebook ? (
-              <NotebookRenderer notebook={loadedNotebook} highlightedCellIndices={highlightedCellIndices} />
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                <p className="text-base sm:text-lg text-gray-700 mb-2">Drag & Drop your .ipynb file here</p>
-                <p className="text-gray-500 mb-4">or</p>
-                <label htmlFor="file-upload" className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md cursor-pointer hover:bg-blue-700 transition duration-300 ease-in-out">
-                  Select .ipynb File
-                </label>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept=".ipynb"
-                  className="hidden"
-                  onChange={handleFileSelect}
-                />
+            )}
+            <div
+              className="flex-1 bg-gradient-to-br from-white via-blue-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200 relative overflow-y-auto"
+              onDrop={handleFileDrop}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              onDragEnter={(e) => e.stopPropagation()}
+              onDragLeave={(e) => e.stopPropagation()}
+            >
+              {isLoading ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                  <span className="w-14 h-14 mb-4 border-4 border-blue-400 border-t-transparent border-b-purple-400 border-r-teal-400 rounded-full animate-spin inline-block"></span>
+                  <span className="text-blue-600 font-semibold text-lg">Loading notebook...</span>
+                </div>
+              ) : loadedNotebook ? (
+                <NotebookRenderer notebook={editedNotebook || loadedNotebook} highlightedCellIndices={highlightedCellIndices} />
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                  <p className="text-base sm:text-lg text-gray-700 dark:text-gray-400 mb-2">Drag & Drop your .ipynb file here</p>
+                  <p className="text-gray-500 mb-4">or</p>
+                  <label htmlFor="file-upload" className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md cursor-pointer hover:bg-blue-700 transition duration-300 ease-in-out">
+                    Select .ipynb File
+                  </label>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    accept=".ipynb"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+                </div>
+              )}
+            </div>
+            {errorMessage && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mt-4" role="alert">
+                <strong className="font-bold">Error:</strong>
+                <span className="block sm:inline ml-2">{errorMessage}</span>
               </div>
             )}
           </div>
-          {errorMessage && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mt-4" role="alert">
-              <strong className="font-bold">Error:</strong>
-              <span className="block sm:inline ml-2">{errorMessage}</span>
-            </div>
-          )}
-        </div>
 
-        {/* Right Panel: Review Summary */}
-        <div className="w-1/2 flex flex-col h-full">
-          {showSpinner ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="flex flex-col items-center">
-                <span className="w-12 h-12 mb-4 border-4 border-blue-400 border-t-transparent rounded-full animate-spin inline-block"></span>
-                <span className="text-blue-600 font-semibold text-lg">reviewing notebook</span>
+          {/* Right Panel: Review Summary */}
+          <div className="w-1/2 flex flex-col h-full bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 p-8 transition-transform duration-300 hover:scale-[1.02] hover:shadow-2xl">
+            {showSpinner ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="flex flex-col items-center">
+                  <span className="w-14 h-14 mb-4 border-4 border-blue-400 border-t-transparent border-b-purple-400 border-r-teal-400 rounded-full animate-spin inline-block"></span>
+                  <span className="text-blue-600 font-semibold text-lg">reviewing notebook</span>
+                </div>
               </div>
-            </div>
-          ) : reviewResults.length > 0 ? (
-            <div className="flex-1 pt-2 overflow-x-auto overflow-y-auto shadow-md bg-white">
-              <div className="text-gray-600 text-xs sm:text-sm mb-4 text-center p-2">
-                ✅ = Meets expectations | 🔹 = Could be improved | ❌ = Missing | ➖ = Not applicable
-              </div>
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="sticky top-0 bg-gray-50 z-10">
-                  <tr>
-                    <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
-                      Guideline
-                    </th>
-                    <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
-                      Suggestion
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white">
-                  {reviewResults.map((result, idx) => (
-                    <tr
-                      key={result.id}
-                      onClick={() => setHighlightedCellIndices(result.relevantCells)}
-                      className={`hover:bg-gray-50 cursor-pointer transition-colors duration-150 transition-opacity duration-700 
-                        ${idx < visibleRows ? 'opacity-100' : 'opacity-0'}
-                        ${idx < visibleRows && idx !== 0 ? 'border-t border-gray-200' : ''}`}
-                      style={{ pointerEvents: idx < visibleRows ? 'auto' : 'none' }}
-                    >
-                      <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm font-medium text-gray-900 w-1/3">
-                        {result.name}
-                        <p className="text-xs text-gray-500 mt-1 italic">{result.description}</p>
-                      </td>
-                      <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-center text-lg">
-                        {result.status}
-                      </td>
-                      <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm text-gray-700 w-2/3">
-                        {result.suggestion}
-                      </td>
+            ) : reviewResults.length > 0 ? (
+              <div className="flex-1 pt-2 overflow-x-auto overflow-y-auto bg-gradient-to-br from-white via-purple-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl">
+                <div className="text-gray-600 text-xs sm:text-sm mb-4 text-center p-2">
+                  ✅ = Meets expectations | 🔹 = Could be improved | ❌ = Missing | ➖ = Not applicable
+                </div>
+                <table className="min-w-full dark:bg-gray-900">
+                  <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                    <tr>
+                      <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
+                        Guideline
+                      </th>
+                      <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
+                        Suggestion
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-500 text-center p-4 bg-gray-50">
-              <p className="text-base sm:text-lg">Review results will appear here after a notebook is loaded.</p>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-900">
+                    {reviewResults.map((result, idx) => (
+                      <tr
+                        key={result.id}
+                        onClick={() => setHighlightedCellIndices(result.relevantCells)}
+                        className={`hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors duration-150 transition-opacity duration-700 
+                          ${idx < visibleRows ? 'opacity-100' : 'opacity-0'}
+                          ${idx < visibleRows && idx !== 0 ? 'border-t border-gray-200 dark:border-gray-700' : ''}`}
+                        style={{ pointerEvents: idx < visibleRows ? 'auto' : 'none' }}
+                      >
+                        <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm font-medium text-gray-900 dark:text-gray-100 w-1/3">
+                          {result.name}
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{result.description}</p>
+                        </td>
+                        <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-center text-lg dark:text-gray-100">
+                          {result.status}
+                        </td>
+                        <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm text-gray-300 dark:text-gray-300 w-2/3">
+                          {result.suggestion}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400 text-center p-4 bg-gray-50 dark:bg-gray-900">
+                <p className="text-base sm:text-lg">Review results will appear here after a notebook is loaded.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
