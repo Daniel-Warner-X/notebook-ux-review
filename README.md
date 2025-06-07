@@ -1,7 +1,7 @@
 [Screen Recording](https://github.com/user-attachments/assets/ed775f60-09f6-4471-a46a-5500aa986d26)
 
 
-# UX Reviewer for Jupyter Notebooks
+# UX Reviewer For Jupyter Notebooks
 
 HITL GenAI-powered UX reviews for Jupyter Notebooks based on [this framework](https://github.com/instructlab/examples/blob/main/Notebook-UX-Review-Template.md).
 
