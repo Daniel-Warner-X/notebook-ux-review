@@ -7,12 +7,14 @@ This is a design experiment illustrates the idea of HITL GenAI-powered UX review
 
 The goal is to make a little Reviewer / Fixer agent for notebook UX.
 
-The next steps would likely be:
+The next steps might be:
 
-- [ ] Add a 'fix this' button that calls out to a model for suggestions that can then either be accepted, rejected, or edited.
+- [ ] Add an option for the user to 'fix this' that calls out to a model for suggestions that can then either be accepted, rejected, or edited.
 - [ ] Download the updated Notebook
 - [ ] Integrate into an existing workflow (ex. IDE plug-in, GitHub action)
+- [ ] Open a notebook from a GitHub URL and post UX improvements as a comment
 - [ ] Run the notebook for debug purposes (prob hard to do)
+- [ ] Make fixes in fully agentic mode and surface a report
 - [ ] Other things I haven't thought of...
 
 
