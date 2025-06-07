@@ -9,6 +9,7 @@ The goal is to make a little Reviewer / Fixer agent for notebook UX.
 
 The next steps might be:
 
+- [ ] Make sure that the review is accurate and useful
 - [ ] Add an option for the user to 'fix this' that calls out to a model for suggestions that can then either be accepted, rejected, or edited.
 - [ ] Download the updated Notebook
 - [ ] Integrate into an existing workflow (ex. IDE plug-in, GitHub action)
