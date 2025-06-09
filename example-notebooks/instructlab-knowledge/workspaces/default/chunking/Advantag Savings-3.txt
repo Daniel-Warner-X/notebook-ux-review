@@ -1,0 +1,4 @@
+Overdraft policy
+We don't charge overdraft fees on this account. To help you avoid overdrawing your account, transactions will be declined and returned unpaid when you don't have enough money in your account.
+If this happens, you won't be charged a bank overdraft fee, but the merchant or third party could charge you a fee. For example, you may be charged a late fee if the payment isn't received on time.
+There may still be times when your account could have a negative balance, but we won't charge an overdraft fee.

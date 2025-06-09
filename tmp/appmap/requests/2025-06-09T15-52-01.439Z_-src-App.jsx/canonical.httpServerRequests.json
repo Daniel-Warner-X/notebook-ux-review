@@ -1,0 +1,7 @@
+[
+  {
+    "route": "GET /src/App.jsx",
+    "parameters": "()",
+    "status": 304
+  }
+]

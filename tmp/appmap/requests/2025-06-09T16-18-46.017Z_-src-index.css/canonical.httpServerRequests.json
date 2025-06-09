@@ -1,0 +1,7 @@
+[
+  {
+    "route": "GET /src/index.css",
+    "parameters": "()",
+    "status": 304
+  }
+]
