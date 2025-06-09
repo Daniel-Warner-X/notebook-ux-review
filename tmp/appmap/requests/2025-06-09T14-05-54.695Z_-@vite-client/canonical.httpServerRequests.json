@@ -1,7 +1,0 @@
-[
-  {
-    "route": "GET /@vite/client",
-    "parameters": "()",
-    "status": 304
-  }
-]
