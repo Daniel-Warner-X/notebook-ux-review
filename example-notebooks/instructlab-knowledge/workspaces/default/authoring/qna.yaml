@@ -1,0 +1,129 @@
+seed_examples:
+  - context: |-
+      Interest rate and interest calculation
+      Your account has a variable interest rate, which means the interest rate may change. Interest rates for your account are based on balance tiers, are set at our discretion and may change at any time without notice.
+      To calculate interest, we apply a daily periodic rate to the collected balance in your account each day. The daily rate that applies will depend on which balance tier your end-of-day balance falls in. We compound and pay any interest earned monthly. Interest is only paid in whole cents and we use standard rounding rules to calculate the amount. This means that an amount less than half of one cent is rounded down to zero, and an amount of half of one cent or more is rounded up to the next whole cent.
+      Extra interest
+      Extra interest is earned automatically when an account owner is enrolled in the Preferred Rewards program. The interest rate will increase by at least 5%, 10% or 20% over the standard rate, and is based on the Preferred Rewards tier in which you're enrolled. We may decide to pay a higher rate.
+      Where can I find information about current interest rates?
+      You can find current rate information by checking bankofamerica.com, calling the number on your account statement or visiting a financial center.
+    questions_and_answers:
+      - question: What is the method used to calculate interest on the account?
+        answer: |-
+          Interest is calculated by applying a daily periodic rate to the collected
+          balance in the account each day, with the daily rate depending on the balance
+          tier the end-of-day balance falls in. The interest is then compounded and paid
+          monthly.
+      - question: What are the different ways interest can be increased on the account?
+        answer: |-
+          Interest can be increased through a variable interest rate based on balance
+          tiers, or by enrollment in the Preferred Rewards program, which can increase the
+          interest rate by at least 5%, 10%, or 20%.
+      - question: |-
+          If a customer is enrolled in the Preferred Rewards program, what would be the
+          minimum increase in the interest rate?
+        answer: The interest rate would increase by at least 5% over the standard
+          rate.
+  - context: |-
+      Non-Bank of America ATMs, No ATM fee = $2.50. Non-Bank of America ATMs, For
+      deposits, withdrawals, transfers or balance inquiries = In the U.S., plus any
+      fee charged by the ATM's operator. Non-Bank of America ATMs, No ATM fee = $5.00.
+      Non-Bank of America ATMs, For deposits, withdrawals, transfers or balance
+      inquiries = Outside the U.S., plus any fee charged by the ATM's operator.
+      Statement copies, No ATM fee = No fee. Statement copies, For deposits,
+      withdrawals, transfers or balance inquiries = Paper copies available upon
+      request. Printable statements are available in Online Banking.. Stop payment
+      fee, No ATM fee = $30.00. Stop payment fee, For deposits, withdrawals, transfers
+      or balance inquiries = For each request; WAIVED for requests on Bill Pay
+      transactions. Cashier's checks, No ATM fee = $15.00. Cashier's checks, For
+      deposits, withdrawals, transfers or balance inquiries = For each check
+    questions_and_answers:
+      - question: What is the fee for a cashier's check at a Non-Bank of America ATM?
+        answer: $15.00
+      - question: |-
+          What are the fees associated with various services at Non-Bank of America ATMs
+          and other locations?
+        answer: |-
+          Non-Bank of America ATMs: No ATM fee = $2.50 (U.S.), $5.00 (outside U.S.); For
+          deposits, withdrawals, transfers or balance inquiries = U.S. fee + ATM operator
+          fee, outside U.S. fee + ATM operator fee; Statement copies = No fee (for no
+          transaction), paper copies available upon request; Stop payment fee = $30.00 (no
+          transaction), waived for Bill Pay transactions; Cashier's checks = $15.00 (no
+          transaction), $15.00 (for each check).
+      - question: |-
+          If you were to compare the fees for a cashier's check at a Non-Bank of America
+          ATM with those of a transaction at the same location, which fee would be higher
+          and why?
+        answer: |-
+          The fee for a cashier's check ($15.00) would be higher than the fee for a
+          transaction at the same Non-Bank of America ATM ($2.50 or $5.00, depending on
+          the location).
+  - context: "FDIC\nCoverage\nThis account is insured by the Federal Deposit Insurance\
+      \ Corporation (FDIC) and is backed by the U.S. government. The standard insurance\
+      \ amount is $250,000 per depositor, per insured bank, for each account ownership\
+      \ category.\nMonthly Maintenance Fee\n$8.00\neach month\n(We'll waive this fee\
+      \ for the first 6 months.)\nYou can avoid the Monthly Maintenance Fee when you\
+      \ meet ONE of the following requirements during each statement cycle:\n\xB7\
+      \ Maintain a minimum daily balance of $500 or more in your account, OR\n\xB7\
+      \ Ask us to link your account to your Bank of America Advantage Relationship\
+      \ Banking \xAE , Bank of America Advantage  with Tiered Interest Checking or\
+      \ Bank of America Advantage \xAE \xAE Regular Checking account (first 4 savings\
+      \ accounts), OR\n\xB7 An owner of this account is under the age of 25 (fiduciary\
+      \ accounts don't qualify), OR\n\xB7 Be a member of the Preferred Rewards program.\
+      \ Learn more at bankofamerica.com/preferred-rewards, or visit your local financial\
+      \ center."
+    questions_and_answers:
+      - question: |-
+          What is the standard insurance amount per depositor, per insured bank, for each
+          account ownership category?
+        answer: $250,000
+      - question: What are the ways to avoid the Monthly Maintenance Fee of $8?
+        answer: "Maintain a minimum daily balance of $500 or more, link your account\
+          \ to a Bank of\nAmerica Advantage Relationship Banking \xAE , Bank of America\
+          \ Advantage  with\nTiered Interest Checking or Bank of America Advantage\
+          \ \xAE  Regular Checking\naccount, be an account owner under the age of\
+          \ 25, or be a member of the\nPreferred Rewards program."
+      - question: |-
+          If a depositor wants to avoid the Monthly Maintenance Fee, what is the minimum
+          age they must be?
+        answer: The minimum age to avoid the Monthly Maintenance Fee is under 25.
+  - context: |-
+      We don't charge overdraft fees on this account. To help you avoid overdrawing your account, transactions will be declined and returned unpaid when you don't have enough money in your account.
+      If this happens, you won't be charged a bank overdraft fee, but the merchant or third party could charge you a fee. For example, you may be charged a late fee if the payment isn't received on time.
+      There may still be times when your account could have a negative balance, but we won't charge an overdraft fee.
+    questions_and_answers:
+      - question: Does this account charge overdraft fees?
+        answer: No, this account does not charge overdraft fees.
+      - question: |-
+          What happens when a transaction is made without sufficient funds in this
+          account?
+        answer: |-
+          The transaction is declined and returned unpaid, and the merchant or third party
+          could charge a fee.
+      - question: |-
+          If a payment isn't received on time due to a declined transaction, could the
+          payee charge a late fee?
+        answer: Yes, the payee could charge a late fee.
+  - context: |-
+      Cash, direct deposits, wire transfers: On the day we receive them.
+      Checks: Usually the next business day if deposited before the financial center or ATM cutoff time.
+      Mobile Check Deposit: Usually the next business day if deposited by applicable cutoff times. Please refer to Deposit Checks , then Help in the Mobile Banking app for additional details and terms and conditions.
+      If we place a hold on your deposit, we'll let you know the hold reason and when your funds will be available. This is typically provided at the time of deposit but may also be mailed later. Deposits greater than $5,525 and checks deposited within the first 30 days of account opening may be held longer.
+    questions_and_answers:
+      - question: What is the usual availability of cash and wire transfers when received?
+        answer: On the day they are received.
+      - question: What is the general timeframe for checks to become available after
+          deposit?
+        answer: |-
+          Checks are usually available the next business day if deposited before the
+          financial center or ATM cutoff time.
+      - question: |-
+          If a check is deposited within the first 30 days of account opening and the
+          amount is greater than $5,525, will it be held longer?
+        answer: |-
+          Yes, deposits greater than $5,525 and checks deposited within the first 30 days
+          of account opening may be held longer.
+document_outline: |-
+  Details about the Advantage Savings Account (ASA) and its features, benefits,
+  and eligibility criteria.
+domain: retail banking
