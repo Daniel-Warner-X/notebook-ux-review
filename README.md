@@ -13,7 +13,7 @@ The next steps might be:
 - [ ] Add an option for the user to 'fix this' that calls out to a model for suggestions that can then either be accepted, rejected, or edited.
 - [ ] Download the updated Notebook
 - [ ] Integrate into an existing workflow (ex. IDE plug-in, GitHub action)
-- [ ] Reciew a notebook from a GitHub URL and post UX improvements as a comment
+- [ ] Review a notebook from a GitHub URL and post UX improvements as a comment
 - [ ] Run the notebook for debug purposes (prob hard to do)
 - [ ] Make fixes in fully agentic mode and surface a report on improvements made
 - [ ] Other things I haven't thought of...
