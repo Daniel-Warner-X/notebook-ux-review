@@ -29,7 +29,7 @@ jobs:
           done
 
       - name: Upload review summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Updated to v4
         with:
           name: notebook-review-summary
           path: review-summary.md
