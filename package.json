@@ -1,0 +1,9 @@
+{
+    "name": "notebook-ux-review",
+    "version": "1.0.0",
+    "main": "review-notebook.js",
+    "type": "module",
+    "scripts": {
+      "review": "node review-notebook.js"
+    }
+  }

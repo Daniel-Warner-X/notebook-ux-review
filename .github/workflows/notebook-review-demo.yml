@@ -1,18 +1,49 @@
-name: Notebook Review Demo
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+name: Notebook UX Review
+
+on:
+  pull_request:
+    paths:
+      - '**.ipynb'
+  push:
+    paths:
+      - '**.ipynb'
+
 jobs:
-  Explore-GitHub-Actions:
+  review:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v4
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Run notebook review for all .ipynb files
         run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+          npm install
+          for nb in $(find . -name '*.ipynb'); do
+            echo "## Review for $nb" >> review-summary.md
+            node review-notebook.js "$nb" >> review-summary.md
+            echo "" >> review-summary.md
+          done
+
+      - name: Upload review summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: notebook-review-summary
+          path: review-summary.md
+
+      - name: Add review summary to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('review-summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
