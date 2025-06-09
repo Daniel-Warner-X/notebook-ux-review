@@ -1,7 +1,5 @@
-#!/usr/bin/env node
-
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 const guidelines = [
   { id: 'clearHeader', name: 'Clear Header', description: 'Clear, succinct title (<15 words) of notebook\'s purpose', relevantCells: [] },
@@ -268,6 +266,9 @@ function main() {
   console.log(md);
 }
 
-if (require.main === module) {
+if (
+  import.meta.url === `file://${process.argv[1]}` ||
+  import.meta.url === `file://${process.argv[1]}`.replace(/%20/g, ' ')
+) {
   main();
 }
