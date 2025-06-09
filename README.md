@@ -10,7 +10,7 @@ The goal is to make a little Reviewer / Fixer agent for notebook UX.
 The next steps might be:
 
 - [ ] Ensure the reviews are accurate and useful. Determine which steps require LLM 
-- [ ] Add an option for the user to 'fix this' that calls out to a model for suggestions that can then either be accepted, rejected, or edited.
+- [ ] Add an option for the user to 'improve this experience' that calls out to a model for suggestions that can then either be accepted, rejected, or edited.
 - [ ] Download the updated Notebook
 - [ ] Integrate into an existing workflow (ex. IDE plug-in, GitHub action)
 - [ ] Review a notebook from a GitHub URL and post UX improvements as a comment
