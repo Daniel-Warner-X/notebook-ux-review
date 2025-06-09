@@ -11,6 +11,8 @@ on:
 jobs:
   review:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # Add this line to grant write permissions to pull requests
     steps:
       - uses: actions/checkout@v3
 
@@ -29,7 +31,7 @@ jobs:
           done
 
       - name: Upload review summary
-        uses: actions/upload-artifact@v4  # Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: notebook-review-summary
           path: review-summary.md
