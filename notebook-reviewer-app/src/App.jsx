@@ -6,6 +6,14 @@ import { Split, SplitItem } from '@patternfly/react-core';
 import '@patternfly/react-core/dist/styles/base.css';
 import { Bullseye } from '@patternfly/react-core';
 import { Spinner } from '@patternfly/react-core';
+import {
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td
+} from '@patternfly/react-table';
 
 
 // Component to render Jupyter notebook cells (Markdown and Code with Outputs)
@@ -611,44 +619,32 @@ const App = () => {
                   <div className="text-gray-600 text-xs sm:text-sm mb-4 text-center p-2">
                     ✅ = Meets expectations | 🔹 = Could be improved | ❌ = Missing | ➖ = Not applicable
                   </div>
-                  <table className="min-w-full dark:bg-gray-900">
-                    <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
-                      <tr>
-                        <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
-                          Guideline
-                        </th>
-                        <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
-                          Suggestion
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-900">
+                  <Table aria-label="UX review results" variant="compact" style={{ minWidth: '100%' }}>
+                    <Thead>
+                      <Tr>
+                        <Th>Guideline</Th>
+                        <Th>Status</Th>
+                        <Th>Suggestion</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
                       {reviewResults.map((result, idx) => (
-                        <tr
+                        <Tr
                           key={result.id}
+                          isClickable
                           onClick={() => setHighlightedCellIndices(result.relevantCells)}
-                          className={`hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors duration-150 transition-opacity duration-700 
-                            ${idx < visibleRows ? 'opacity-100' : 'opacity-0'}
-                            ${idx < visibleRows && idx !== 0 ? 'border-t border-gray-200 dark:border-gray-700' : ''}`}
-                          style={{ pointerEvents: idx < visibleRows ? 'auto' : 'none' }}
+                          style={{ opacity: idx < visibleRows ? 1 : 0, pointerEvents: idx < visibleRows ? 'auto' : 'none', transition: 'opacity 0.7s' }}
                         >
-                          <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm font-medium text-gray-900 dark:text-gray-100 w-1/3">
-                            {result.name}
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{result.description}</p>
-                          </td>
-                          <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-center text-lg dark:text-gray-100">
-                            {result.status}
-                          </td>
-                          <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm text-gray-300 dark:text-gray-300 w-2/3">
-                            {result.suggestion}
-                          </td>
-                        </tr>
+                          <Td dataLabel="Guideline">
+                            <span style={{ fontWeight: 500 }}>{result.name}</span>
+                            <div style={{ fontSize: '0.85em', color: 'var(--pf-v6-global--Color--200)', fontStyle: 'italic', marginTop: 4 }}>{result.description}</div>
+                          </Td>
+                          <Td dataLabel="Status" style={{ textAlign: 'center', fontSize: '1.2em' }}>{result.status}</Td>
+                          <Td dataLabel="Suggestion" style={{ color: 'var(--pf-v6-global--Color--200)' }}>{result.suggestion}</Td>
+                        </Tr>
                       ))}
-                    </tbody>
-                  </table>
+                    </Tbody>
+                  </Table>
                 </div>
               ) : (
                 <Bullseye style={{ height: '100%' }}>
