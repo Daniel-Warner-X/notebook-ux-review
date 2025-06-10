@@ -1,25 +1,21 @@
-[Screen Recording](https://github.com/user-attachments/assets/ed775f60-09f6-4471-a46a-5500aa986d26)
-
+[notebook-reviewer-pf.webm](https://github.com/user-attachments/assets/e4dae7ba-e4af-43d6-a09f-e20318a96f75)
 
 # UX Reviewer For Jupyter Notebooks
 
-HITL GenAI-powered UX reviews for Jupyter Notebooks based on [this framework](https://github.com/instructlab/examples/blob/main/Notebook-UX-Review-Template.md).
+Automated UX reviews for Jupyter Notebooks based on [this framework](https://github.com/instructlab/examples/blob/main/Notebook-UX-Review-Template.md).
 
-The goal is to make a little Reviewer / Fixer agent for notebook UX.
+This is an experimental design. The ultimate goal is to have automated UX reviews for Jupyter Notebooks. This project contains a web-based UI for conducting reviews as well as a github action.
 
 The next steps might be:
 
-- [ ] Ensure the reviews are accurate and useful. Determine which steps require LLM 
-- [ ] Add an option for the user to 'improve this experience' that calls out to a model for suggestions that can then either be accepted, rejected, or edited.
-- [ ] Download the updated Notebook
+- [ ] Ensure the reviews are accurate and useful. Determine which evaluation steps would benefit from querying an LLM.
+- [ ] Generate UX improvement suggestions that can either be accepted, rejected, or edited.
 - [ ] Integrate into an existing workflow (ex. IDE plug-in, GitHub action)
-- [ ] Review a notebook from a GitHub URL and post UX improvements as a comment
 - [ ] Run the notebook for debug purposes (prob hard to do)
 - [ ] Make fixes in fully agentic mode and surface a report on improvements made
 - [ ] Other things I haven't thought of...
 
-
-It started in Gemini Canvas and continued in Cursor. To run it locally...
+To run this locally...
 
 ## Prerequisites
 
