@@ -18,7 +18,7 @@ import {
 
 // Component to render Jupyter notebook cells (Markdown and Code with Outputs)
 // Now accepts 'highlightedCellIndices' prop to apply highlighting
-const NotebookRenderer = ({ notebook, highlightedCellIndices = [] }) => {
+const NotebookRenderer = ({ notebook, highlightedCellIndices = [], flashCellIndices = [] }) => {
   const cellRefs = useRef([]); // To hold refs to each cell for scrolling
   const [editedNotebook, setEditedNotebook] = useState(null);
   const [editingCell, setEditingCell] = React.useState(null);
@@ -56,7 +56,7 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [] }) => {
     <div>
       {notebook.cells.map((cell, index) => {
         const isHighlighted = highlightedCellIndices.includes(index);
-        const isEditing = isHighlighted && editingCell === index;
+        const isEditing = false; // Disable editing feature
         let cellText = cell.source.join("");
         // Ref and state for dynamic minHeight
         const contentRef = useRef(null);
@@ -74,23 +74,11 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [] }) => {
               isHighlighted
                 ? 'border-blue-500 ring-2 ring-blue-300 bg-blue-50 dark:border-blue-400 dark:ring-blue-700 dark:bg-blue-900/40'
                 : 'border-gray-200 dark:border-gray-700'
-            }`}
+            }${flashCellIndices.includes(index) ? ' notebook-flash' : ''}`}
             tabIndex={isHighlighted ? 0 : -1}
-            onClick={() => { if (isHighlighted) setEditingCell(index); }}
           >
             {/* Render Markdown Cells */}
-            {cell.cell_type === 'markdown' && isEditing ? (
-              <textarea
-                className="w-full min-h-[80px] bg-transparent border-none outline-none resize-vertical text-base font-sans dark:text-gray-100 dark:bg-transparent"
-                value={cellText}
-                autoFocus
-                onBlur={() => setEditingCell(null)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); setEditingCell(null); } }}
-                onChange={e => handleEditCell(index, e.target.value)}
-                style={minHeight ? { minHeight } : {}}
-              />
-            ) : null}
-            {cell.cell_type === 'markdown' && !isEditing ? (
+            {cell.cell_type === 'markdown' ? (
               <div
                 ref={isHighlighted ? contentRef : undefined}
                 className="prose prose-sm md:prose-base max-w-none dark:prose-invert dark:text-gray-100 break-words"
@@ -98,17 +86,7 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [] }) => {
               ></div>
             ) : null}
             {/* Render Code Cells */}
-            {cell.cell_type === 'code' && isEditing ? (
-              <textarea
-                className="w-full min-h-[80px] bg-gray-800 dark:bg-gray-900 text-white dark:text-cyan-200 border-none outline-none resize-vertical font-mono text-sm"
-                value={cellText}
-                autoFocus
-                onBlur={() => setEditingCell(null)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); setEditingCell(null); } }}
-                onChange={e => handleEditCell(index, e.target.value)}
-                style={minHeight ? { minHeight } : {}}
-              />
-            ) : cell.cell_type === 'code' ? (
+            {cell.cell_type === 'code' ? (
               <pre
                 ref={isHighlighted ? contentRef : undefined}
                 className="bg-gray-800 text-white dark:bg-gray-900 dark:text-cyan-200 p-2 rounded-md overflow-x-auto text-sm break-words whitespace-pre-wrap"
@@ -172,6 +150,9 @@ const App = () => {
   const [showSpinner, setShowSpinner] = useState(false);
   // Add state to hold edited notebook cells
   const [editedNotebook, setEditedNotebook] = useState(null);
+  // State for flashing notebook cells
+  const [flashCellIndices, setFlashCellIndices] = useState([]);
+  const flashTimeoutRef = useRef(null);
 
   // When loading starts, reset visibleRows
   useEffect(() => {
@@ -543,6 +524,33 @@ const App = () => {
     setReviewResults(newResults);
   };
 
+  // Handler for review row click: highlight and flash
+  const handleReviewRowClick = (indices) => {
+    setHighlightedCellIndices(indices);
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+    setFlashCellIndices(indices);
+    flashTimeoutRef.current = setTimeout(() => setFlashCellIndices([]), 700);
+  };
+
+  // Add flash CSS
+  React.useEffect(() => {
+    if (!document.getElementById('notebook-flash-style')) {
+      const style = document.createElement('style');
+      style.id = 'notebook-flash-style';
+      style.innerHTML = `
+        .notebook-flash {
+          animation: notebook-flash-bg 0.7s;
+        }
+        @keyframes notebook-flash-bg {
+          0% { background-color: #fffbe6; }
+          60% { background-color: #fffbe6; }
+          100% { background-color: inherit; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   return (
     <div className="layout-gutter" style={{ height: '100vh', width: '100vw', boxSizing: 'border-box' }}>
       <Split hasGutter style={{ height: '100%' }}>
@@ -574,7 +582,11 @@ const App = () => {
                       <span className="text-blue-600 font-semibold text-lg">Loading notebook...</span>
                     </div>
                   ) : loadedNotebook ? (
-                    <NotebookRenderer notebook={editedNotebook || loadedNotebook} highlightedCellIndices={highlightedCellIndices} />
+                    <NotebookRenderer
+                      notebook={editedNotebook || loadedNotebook}
+                      highlightedCellIndices={highlightedCellIndices}
+                      flashCellIndices={flashCellIndices}
+                    />
                   ) : (
                     <Bullseye style={{ height: '100%', minHeight: '300px' }}>
                       <div className="text-center">
@@ -632,7 +644,7 @@ const App = () => {
                         <Tr
                           key={result.id}
                           isClickable
-                          onClick={() => setHighlightedCellIndices(result.relevantCells)}
+                          onClick={() => handleReviewRowClick(result.relevantCells)}
                           style={{ opacity: idx < visibleRows ? 1 : 0, pointerEvents: idx < visibleRows ? 'auto' : 'none', transition: 'opacity 0.7s' }}
                         >
                           <Td dataLabel="Guideline">
