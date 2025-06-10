@@ -15,21 +15,7 @@ The next steps might be:
 - [ ] Make fixes in fully agentic mode and surface a report on improvements made
 - [ ] Other things I haven't thought of...
 
-To run this locally...
-
-## Prerequisites
-
-Make sure you have the following installed:
-
-- **Node.js and npm**  
-  Download from [nodejs.org](https://nodejs.org/).  
-  To verify installation, run:
-  ```sh
-  node -v
-  npm -v
-  ```
-
-## Step-by-Step Instructions
+## Run the Web UI Locally
 
 ### 1. Create a New React Project
 
