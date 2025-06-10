@@ -13,6 +13,7 @@ The next steps might be:
 - [ ] Integrate into an existing workflow (ex. IDE plug-in, GitHub action)
 - [ ] Run the notebook for debug purposes (prob hard to do)
 - [ ] Make fixes in fully agentic mode and surface a report on improvements made
+- [ ] Create a cursor rule for UX review
 - [ ] Other things I haven't thought of...
 
 ## Run the Web UI Locally
