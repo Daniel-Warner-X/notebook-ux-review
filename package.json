@@ -5,5 +5,10 @@
   "type": "module",
   "scripts": {
     "review": "node review-notebook.js"
+  },
+  "dependencies": {
+    "@patternfly/react-core": "^6.2.2",
+    "@patternfly/react-icons": "^6.2.2",
+    "@patternfly/react-styles": "^6.2.2"
   }
 }

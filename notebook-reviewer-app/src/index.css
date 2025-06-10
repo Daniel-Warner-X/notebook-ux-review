@@ -1,7 +1,3 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -15,6 +11,15 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.test-gutter {
+  padding: 2rem;
+  background: #eee;
+}
+
+.layout-gutter {
+  padding: 2rem;
 }
 
 a {
@@ -32,6 +37,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--pf-v6-global--BackgroundColor--100, #f0f0f0);
 }
 
 h1 {
@@ -68,5 +74,36 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
+  }
+  body {
+    background-color: var(--pf-v6-global--BackgroundColor--100, #f0f0f0);
+  }
+}
+
+.h-100-custom {
+  height: 100%;
+}
+
+.wrap-words {
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.centered-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.8s forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
   }
 }

@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked'; // Ensure marked is imported here
+import { Button } from '@patternfly/react-core';
+import { Card, CardBody } from '@patternfly/react-core';
+import { Split, SplitItem } from '@patternfly/react-core';
+import '@patternfly/react-core/dist/styles/base.css';
+import { Bullseye } from '@patternfly/react-core';
+import { Spinner } from '@patternfly/react-core';
+
 
 // Component to render Jupyter notebook cells (Markdown and Code with Outputs)
 // Now accepts 'highlightedCellIndices' prop to apply highlighting
@@ -74,16 +81,14 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [] }) => {
                 onChange={e => handleEditCell(index, e.target.value)}
                 style={minHeight ? { minHeight } : {}}
               />
-            ) : cell.cell_type === 'markdown' ? (
+            ) : null}
+            {cell.cell_type === 'markdown' && !isEditing ? (
               <div
                 ref={isHighlighted ? contentRef : undefined}
-                className="prose prose-sm md:prose-base max-w-none dark:prose-invert dark:text-gray-100"
+                className="prose prose-sm md:prose-base max-w-none dark:prose-invert dark:text-gray-100 break-words"
                 dangerouslySetInnerHTML={{ __html: marked.parse(cellText) }}
               ></div>
             ) : null}
-            {cell.cell_type === 'markdown' && !isEditing && (
-              <pre className="text-gray-900 bg-gray-100 dark:text-gray-100 dark:bg-gray-800 p-2 rounded-md text-sm whitespace-pre-wrap">{cellText}</pre>
-            )}
             {/* Render Code Cells */}
             {cell.cell_type === 'code' && isEditing ? (
               <textarea
@@ -98,7 +103,7 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [] }) => {
             ) : cell.cell_type === 'code' ? (
               <pre
                 ref={isHighlighted ? contentRef : undefined}
-                className="bg-gray-800 text-white dark:bg-gray-900 dark:text-cyan-200 p-2 rounded-md overflow-x-auto text-sm"
+                className="bg-gray-800 text-white dark:bg-gray-900 dark:text-cyan-200 p-2 rounded-md overflow-x-auto text-sm break-words whitespace-pre-wrap"
               >
                 <code>{cellText}</code>
               </pre>
@@ -531,136 +536,132 @@ const App = () => {
   };
 
   return (
-    <>
-      <style>{`
-        @keyframes scan-line {
-          0% { top: 0%; }
-          12.5% { top: 90%; }
-          25% { top: 0%; }
-          37.5% { top: 90%; }
-          50% { top: 0%; }
-          62.5% { top: 90%; }
-          75% { top: 0%; }
-          87.5% { top: 90%; }
-          100% { top: 0%; }
-        }
-      `}</style>
-      <div className="w-screen h-screen min-h-0 min-w-0 bg-gradient-to-br from-blue-50 via-purple-50 to-teal-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 font-sans text-gray-800 dark:text-gray-100 flex justify-center items-center p-6">
-        <div className="w-full h-full flex flex-row items-stretch gap-4">
-          {/* Left Panel: Notebook Renderer and Content Area */}
-          <div className="w-1/2 flex flex-col h-full bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 p-8 transition-transform duration-300 hover:scale-[1.02] hover:shadow-2xl relative overflow-hidden">
-            {/* Scanning line animation */}
-            {showSpinner && (
-              <div className="pointer-events-none absolute left-0 w-full h-full z-20">
+    <div className="layout-gutter" style={{ height: '100vh', width: '100vw', boxSizing: 'border-box' }}>
+      <Split hasGutter style={{ height: '100%' }}>
+        <SplitItem style={{ flex: '1 1 0', minWidth: 0, maxWidth: '50vw', height: '100%' }}>
+          <Card style={{ height: '100%' }}>
+            <CardBody>
+              <div className="w-full h-full flex flex-col items-stretch gap-4 h-100-custom">
+                {/* Scanning line animation */}
+                {showSpinner && (
+                  <div className="pointer-events-none absolute left-0 w-full h-full z-20">
+                    <div
+                      className="absolute left-0 w-full h-2 bg-gradient-to-r from-transparent via-blue-400 to-transparent dark:via-cyan-400 opacity-90 shadow-xl rounded-full"
+                      style={{
+                        animation: 'scan-line 3.2s cubic-bezier(0.4,0,0.2,1) 0s 1',
+                      }}
+                    ></div>
+                  </div>
+                )}
                 <div
-                  className="absolute left-0 w-full h-2 bg-gradient-to-r from-transparent via-blue-400 to-transparent dark:via-cyan-400 opacity-90 shadow-xl rounded-full"
-                  style={{
-                    animation: 'scan-line 3.2s cubic-bezier(0.4,0,0.2,1) 0s 1',
-                  }}
-                ></div>
+                  className="flex-1 bg-gradient-to-br from-white via-blue-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200 relative overflow-y-auto h-100-custom"
+                  onDrop={handleFileDrop}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDragEnter={(e) => e.stopPropagation()}
+                  onDragLeave={(e) => e.stopPropagation()}
+                >
+                  {isLoading ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                      <Spinner size="xl" style={{ marginBottom: '1rem' }} />
+                      <span className="text-blue-600 font-semibold text-lg">Loading notebook...</span>
+                    </div>
+                  ) : loadedNotebook ? (
+                    <NotebookRenderer notebook={editedNotebook || loadedNotebook} highlightedCellIndices={highlightedCellIndices} />
+                  ) : (
+                    <Bullseye style={{ height: '100%', minHeight: '300px' }}>
+                      <div className="text-center">
+                        <label htmlFor="file-upload">
+                          <Button component="span" variant="primary">
+                            Select .ipynb File
+                          </Button>
+                        </label>
+                        <input
+                          id="file-upload"
+                          type="file"
+                          accept=".ipynb"
+                          style={{ display: 'none' }}
+                          onChange={handleFileSelect}
+                        />
+                      </div>
+                    </Bullseye>
+                  )}
+                </div>
+                {errorMessage && (
+                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mt-4" role="alert">
+                    <strong className="font-bold">Error:</strong>
+                    <span className="block sm:inline ml-2">{errorMessage}</span>
+                  </div>
+                )}
               </div>
-            )}
-            <div
-              className="flex-1 bg-gradient-to-br from-white via-blue-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200 relative overflow-y-auto"
-              onDrop={handleFileDrop}
-              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-              onDragEnter={(e) => e.stopPropagation()}
-              onDragLeave={(e) => e.stopPropagation()}
-            >
-              {isLoading ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                  <span className="w-14 h-14 mb-4 border-4 border-blue-400 border-t-transparent border-b-purple-400 border-r-teal-400 rounded-full animate-spin inline-block"></span>
-                  <span className="text-blue-600 font-semibold text-lg">Loading notebook...</span>
-                </div>
-              ) : loadedNotebook ? (
-                <NotebookRenderer notebook={editedNotebook || loadedNotebook} highlightedCellIndices={highlightedCellIndices} />
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                  <p className="text-base sm:text-lg text-gray-700 dark:text-gray-400 mb-2">Drag & Drop your .ipynb file here</p>
-                  <p className="text-gray-500 mb-4">or</p>
-                  <label htmlFor="file-upload" className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md shadow-md cursor-pointer hover:bg-blue-700 transition duration-300 ease-in-out">
-                    Select .ipynb File
-                  </label>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    accept=".ipynb"
-                    className="hidden"
-                    onChange={handleFileSelect}
-                  />
-                </div>
-              )}
-            </div>
-            {errorMessage && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md relative mt-4" role="alert">
-                <strong className="font-bold">Error:</strong>
-                <span className="block sm:inline ml-2">{errorMessage}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Right Panel: Review Summary */}
-          <div className="w-1/2 flex flex-col h-full bg-white/90 dark:bg-gray-900/90 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 p-8 transition-transform duration-300 hover:scale-[1.02] hover:shadow-2xl">
-            {showSpinner ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="flex flex-col items-center">
-                  <span className="w-14 h-14 mb-4 border-4 border-blue-400 border-t-transparent border-b-purple-400 border-r-teal-400 rounded-full animate-spin inline-block"></span>
-                  <span className="text-blue-600 font-semibold text-lg">reviewing notebook</span>
-                </div>
-              </div>
-            ) : reviewResults.length > 0 ? (
-              <div className="flex-1 pt-2 overflow-x-auto overflow-y-auto bg-gradient-to-br from-white via-purple-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl">
-                <div className="text-gray-600 text-xs sm:text-sm mb-4 text-center p-2">
-                  ✅ = Meets expectations | 🔹 = Could be improved | ❌ = Missing | ➖ = Not applicable
-                </div>
-                <table className="min-w-full dark:bg-gray-900">
-                  <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
-                    <tr>
-                      <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
-                        Guideline
-                      </th>
-                      <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
-                        Suggestion
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-900">
-                    {reviewResults.map((result, idx) => (
-                      <tr
-                        key={result.id}
-                        onClick={() => setHighlightedCellIndices(result.relevantCells)}
-                        className={`hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors duration-150 transition-opacity duration-700 
-                          ${idx < visibleRows ? 'opacity-100' : 'opacity-0'}
-                          ${idx < visibleRows && idx !== 0 ? 'border-t border-gray-200 dark:border-gray-700' : ''}`}
-                        style={{ pointerEvents: idx < visibleRows ? 'auto' : 'none' }}
-                      >
-                        <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm font-medium text-gray-900 dark:text-gray-100 w-1/3">
-                          {result.name}
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{result.description}</p>
-                        </td>
-                        <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-center text-lg dark:text-gray-100">
-                          {result.status}
-                        </td>
-                        <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm text-gray-300 dark:text-gray-300 w-2/3">
-                          {result.suggestion}
-                        </td>
+            </CardBody>
+          </Card>
+        </SplitItem>
+        <SplitItem style={{ flex: '1 1 0', minWidth: 0, maxWidth: '50vw', height: '100%' }}>
+          <Card style={{ height: '100%' }}>
+            <CardBody>
+              {showSpinner ? (
+                <Bullseye style={{ height: '100%' }}>
+                  <div className="centered-content">
+                    <Spinner size="xl" style={{ marginBottom: '1rem' }} />
+                    <div className="text-blue-600 font-semibold text-lg">reviewing notebook</div>
+                  </div>
+                </Bullseye>
+              ) : reviewResults.length > 0 ? (
+                <div className="flex-1 pt-2 overflow-x-auto overflow-y-auto bg-gradient-to-br from-white via-purple-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl">
+                  <div className="text-gray-600 text-xs sm:text-sm mb-4 text-center p-2">
+                    ✅ = Meets expectations | 🔹 = Could be improved | ❌ = Missing | ➖ = Not applicable
+                  </div>
+                  <table className="min-w-full dark:bg-gray-900">
+                    <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                      <tr>
+                        <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">
+                          Guideline
+                        </th>
+                        <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th scope="col" className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">
+                          Suggestion
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400 text-center p-4 bg-gray-50 dark:bg-gray-900">
-                <p className="text-base sm:text-lg">Review results will appear here after a notebook is loaded.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-900">
+                      {reviewResults.map((result, idx) => (
+                        <tr
+                          key={result.id}
+                          onClick={() => setHighlightedCellIndices(result.relevantCells)}
+                          className={`hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors duration-150 transition-opacity duration-700 
+                            ${idx < visibleRows ? 'opacity-100' : 'opacity-0'}
+                            ${idx < visibleRows && idx !== 0 ? 'border-t border-gray-200 dark:border-gray-700' : ''}`}
+                          style={{ pointerEvents: idx < visibleRows ? 'auto' : 'none' }}
+                        >
+                          <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm font-medium text-gray-900 dark:text-gray-100 w-1/3">
+                            {result.name}
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{result.description}</p>
+                          </td>
+                          <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-center text-lg dark:text-gray-100">
+                            {result.status}
+                          </td>
+                          <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-normal text-sm text-gray-300 dark:text-gray-300 w-2/3">
+                            {result.suggestion}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <Bullseye style={{ height: '100%' }}>
+                  <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 text-center p-4 bg-gray-50 dark:bg-gray-900">
+                    <p className="text-base sm:text-lg">Review results will appear here after a notebook is loaded.</p>
+                  </div>
+                </Bullseye>
+              )}
+            </CardBody>
+          </Card>
+        </SplitItem>
+      </Split>
+    </div>
   );
 };
 
