@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked'; // Ensure marked is imported here
+import '@patternfly/react-core/dist/styles/base.css';
+import '@patternfly/react-icons/dist/esm/styles/icons.css';s
 
 // Component to render Jupyter notebook cells (Markdown and Code with Outputs)
 // Now accepts 'highlightedCellIndices' prop to apply highlighting
