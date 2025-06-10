@@ -547,7 +547,7 @@ const App = () => {
     <div className="layout-gutter" style={{ height: '100vh', width: '100vw', boxSizing: 'border-box' }}>
       <Split hasGutter style={{ height: '100%' }}>
         <SplitItem style={{ flex: '1 1 0', minWidth: 0, maxWidth: '50vw', height: '100%' }}>
-          <Card style={{ height: '100%' }}>
+          <Card style={{ height: '100%', '--pf-v6-c-card--BorderStyle': 'none' }}>
             <CardBody>
               <div className="w-full h-full flex flex-col items-stretch gap-4 h-100-custom">
                 {/* Scanning line animation */}
@@ -605,7 +605,7 @@ const App = () => {
           </Card>
         </SplitItem>
         <SplitItem style={{ flex: '1 1 0', minWidth: 0, maxWidth: '50vw', height: '100%' }}>
-          <Card style={{ height: '100%' }}>
+          <Card style={{ height: '100%', '--pf-v6-c-card--BorderStyle': 'none' }}>
             <CardBody>
               {showSpinner ? (
                 <Bullseye style={{ height: '100%' }}>
