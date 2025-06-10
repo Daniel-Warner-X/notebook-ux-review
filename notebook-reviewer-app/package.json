@@ -10,13 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@patternfly/react-core": "^6.2.2",
+    "@patternfly/react-icons": "^6.2.2",
+    "@patternfly/react-styles": "^6.2.2",
     "marked": "^15.0.12",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
-    "@tailwindcss/typography": "^0.5.16",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",

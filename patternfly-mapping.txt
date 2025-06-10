@@ -1,0 +1,60 @@
+# PatternFly Component Mapping for notebook-reviewer-app
+
+## Buttons
+- Current: Custom <button>, <label> as button
+- PatternFly: [Button](https://www.patternfly.org/components/button)
+
+## File Input / Upload
+- Current: <input type="file" />
+- PatternFly: [FileUpload](https://www.patternfly.org/components/file-upload)
+
+## Editable Notebook Cells
+- Current: <textarea> for markdown/code editing
+- PatternFly: [TextArea](https://www.patternfly.org/components/textarea)
+
+## Tables
+- Current: Custom <table> for review summary
+- PatternFly: [Table](https://www.patternfly.org/components/table)
+
+## Error Alerts
+- Current: Styled <div> for error messages
+- PatternFly: [Alert](https://www.patternfly.org/components/alert)
+
+## Spinners/Loaders
+- Current: Custom animated spinner
+- PatternFly: [Spinner](https://www.patternfly.org/components/spinner)
+
+## Drag-and-Drop Area
+- Current: Custom drop area for file upload
+- PatternFly: [FileUpload](https://www.patternfly.org/components/file-upload) (supports drag-and-drop)
+
+## Two-Panel Layout
+- Current: Flexbox-based two-panel layout
+- PatternFly: [Split](https://www.patternfly.org/components/split), [Grid](https://www.patternfly.org/components/grid), or [Page](https://www.patternfly.org/components/page)
+
+## Notebook Cell Renderer
+- Current: Custom component for rendering notebook cells
+- PatternFly: Use [Card](https://www.patternfly.org/components/card), [ExpandableSection](https://www.patternfly.org/components/expandable-section), [CodeBlock](https://www.patternfly.org/components/code-block), and [Text](https://www.patternfly.org/components/text) for markdown/code cells
+
+## Animated Row Reveal
+- Current: Custom animation for table rows
+- PatternFly: No direct equivalent; can use [Table] with custom row animation if needed
+
+## Scanning Line Animation
+- Current: Custom CSS animation overlay
+- PatternFly: No direct equivalent; custom implementation may be retained
+
+## Summary Table
+| App UI Element         | PatternFly Component(s)                |
+|-----------------------|----------------------------------------|
+| Button                | Button                                 |
+| File Input/Upload     | FileUpload                             |
+| Editable Cell         | TextArea, CodeBlock, Text              |
+| Table                 | Table                                  |
+| Error Alert           | Alert                                  |
+| Spinner/Loader        | Spinner                                |
+| Drag-and-drop         | FileUpload                             |
+| Two-panel Layout      | Split, Grid, Page                      |
+| Notebook Cell         | Card, ExpandableSection, CodeBlock     |
+| Animated Row Reveal   | Table (custom animation if needed)     |
+| Scanning Line         | (Custom CSS, no direct equivalent)     | 
