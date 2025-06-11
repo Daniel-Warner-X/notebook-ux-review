@@ -14,14 +14,18 @@ import {
   Th,
   Td
 } from '@patternfly/react-table';
+import { Modal } from '@patternfly/react-core';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 
 
 // Component to render Jupyter notebook cells (Markdown and Code with Outputs)
 // Now accepts 'highlightedCellIndices' prop to apply highlighting
-const NotebookRenderer = ({ notebook, highlightedCellIndices = [], flashCellIndices = [] }) => {
+const NotebookRenderer = ({ notebook, highlightedCellIndices = [], flashCellIndices = [], missingCellIndices = [], reviewResults = [], logLLMRequest }) => {
   const cellRefs = useRef([]); // To hold refs to each cell for scrolling
   const [editedNotebook, setEditedNotebook] = useState(null);
   const [editingCell, setEditingCell] = React.useState(null);
+  // Add state for suggestion modal
+  const [suggestionModal, setSuggestionModal] = useState({ cellIndex: null, text: '', loading: false, error: '' });
 
   if (!notebook || !notebook.cells) {
     return <div className="text-gray-500 text-center py-8">No notebook loaded for rendering.</div>;
@@ -52,8 +56,21 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [], flashCellIndi
     setEditedNotebook({ ...notebook, cells: newCells });
   };
 
+  // Responsive notebook container
+  React.useEffect(() => {
+    if (!document.getElementById('notebook-responsive-style')) {
+      const style = document.createElement('style');
+      style.id = 'notebook-responsive-style';
+      style.innerHTML = `
+        .notebook-markdown-content img, .notebook-markdown-content table { max-width: 100%; height: auto; }
+        .notebook-markdown-content { width: 100%; box-sizing: border-box; }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   return (
-    <div>
+    <div style={{ width: '100%' }}>
       {notebook.cells.map((cell, index) => {
         const isHighlighted = highlightedCellIndices.includes(index);
         const isEditing = false; // Disable editing feature
@@ -66,77 +83,193 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [], flashCellIndi
             setMinHeight(contentRef.current.offsetHeight);
           }
         }, [isEditing]);
+        // Jupyter-like: code cell execution count
+        const execCount = cell.execution_count !== undefined && cell.execution_count !== null ? cell.execution_count : '';
+        // Determine flash class: pink for missing, yellow for normal
+        let flashClass = '';
+        if (missingCellIndices.includes(index)) {
+          flashClass = ' notebook-flash-missing';
+        } else if (flashCellIndices.includes(index)) {
+          flashClass = ' notebook-flash';
+        }
+        // Show Suggest Improvements button if this cell is in any relevantCells for a ❌ or 🔹 review, and not only in ✅
+        const needsImprovement = reviewResults.some(r => (r.status === '❌' || r.status === '🔹') && r.relevantCells.includes(index));
+        const onlyGreenCheck = reviewResults.some(r => r.status === '✅' && r.relevantCells.includes(index)) && !needsImprovement;
+        // Determine highlight class
+        let highlightClass = '';
+        if (isHighlighted && missingCellIndices.includes(index)) {
+          highlightClass = ' notebook-cell-highlighted-missing';
+        } else if (isHighlighted) {
+          highlightClass = ' notebook-cell-highlighted';
+        }
         return (
-          <div
-            key={index}
-            ref={el => cellRefs.current[index] = el}
-            className={`mb-4 p-3 border transition-all duration-300 ease-in-out ${
-              isHighlighted
-                ? 'border-blue-500 ring-2 ring-blue-300 bg-blue-50 dark:border-blue-400 dark:ring-blue-700 dark:bg-blue-900/40'
-                : 'border-gray-200 dark:border-gray-700'
-            }${flashCellIndices.includes(index) ? ' notebook-flash' : ''}`}
-            tabIndex={isHighlighted ? 0 : -1}
-          >
-            {/* Render Markdown Cells */}
-            {cell.cell_type === 'markdown' ? (
-              <div
-                ref={isHighlighted ? contentRef : undefined}
-                className="prose prose-sm md:prose-base max-w-none dark:prose-invert dark:text-gray-100 break-words"
-                dangerouslySetInnerHTML={{ __html: marked.parse(cellText) }}
-              ></div>
-            ) : null}
-            {/* Render Code Cells */}
-            {cell.cell_type === 'code' ? (
-              <pre
-                ref={isHighlighted ? contentRef : undefined}
-                className="bg-gray-800 text-white dark:bg-gray-900 dark:text-cyan-200 p-2 rounded-md overflow-x-auto text-sm break-words whitespace-pre-wrap"
-              >
-                <code>{cellText}</code>
-              </pre>
-            ) : null}
-            {/* Render Code Cell Outputs (only if fully revealed) */}
-            {cell.outputs && cell.outputs.length > 0 && (
-              <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm text-gray-900 dark:text-gray-100">
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Output:</h4>
-                {cell.outputs.map((output, outputIndex) => (
-                  <div key={outputIndex} className="mb-1 last:mb-0">
-                    {/* Stream Output (stdout/stderr) */}
-                    {output.output_type === 'stream' && (
-                      <pre className={`whitespace-pre-wrap ${output.name === 'stderr' ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>{output.text.join('')}</pre>
-                    )}
-                    {/* Execute Result / Display Data */}
-                    {(output.output_type === 'execute_result' || output.output_type === 'display_data') && output.data && (
-                      <div>
-                        {output.data['text/html'] && (
-                          <div dangerouslySetInnerHTML={{ __html: output.data['text/html'].join('') }} className="text-gray-900 dark:text-gray-100"></div>
-                        )}
-                        {!output.data['text/html'] && output.data['text/plain'] && (
-                          <pre className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{output.data['text/plain'].join('')}</pre>
-                        )}
-                        {output.data['image/png'] && (
-                          <img src={`data:image/png;base64,${output.data['image/png']}`} alt="Notebook Output" className="max-w-full h-auto rounded-md border border-gray-300" />
-                        )}
-                        {output.data['image/jpeg'] && (
-                          <img src={`data:image/jpeg;base64,${output.data['image/jpeg']}`} alt="Notebook Output" className="max-w-full h-auto rounded-md border border-gray-300" />
-                        )}
-                        {output.data['image/svg+xml'] && (
-                          <div dangerouslySetInnerHTML={{ __html: output.data['image/svg+xml'].join('') }} className="max-w-full h-auto rounded-md border border-gray-300"></div>
-                        )}
-                      </div>
-                    )}
+          <React.Fragment key={index}>
+            {index > 0 && <hr style={{ border: 'none', borderTop: '1.5px solid #e0e0e0', margin: '24px 0' }} />}
+            <div
+              ref={el => cellRefs.current[index] = el}
+              className={`notebook-cell-container${highlightClass ? ' ' + highlightClass : ''}${flashClass ? ' ' + flashClass : ''}`}
+              tabIndex={isHighlighted ? 0 : -1}
+              style={{ width: '100%', position: 'relative' }}
+            >
+              {needsImprovement && !onlyGreenCheck && (
+                <div style={{ width: '100%', margin: '12px 0 8px 0', display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={async e => {
+                      e.stopPropagation();
+                      // Find all review results for this cell that are ❌ or 🔹
+                      const relevantReviews = reviewResults.filter(r => (r.status === '❌' || r.status === '🔹') && r.relevantCells.includes(index));
+                      const suggestions = relevantReviews.map(r => `- ${r.suggestion}`).join('\n');
+                      const cellType = cell.cell_type;
+                      const cellContent = cell.source.join('');
+                      const prompt = `You are an expert Jupyter notebook reviewer.\n\nCell type: ${cellType}\n\nCell content:\n${cellContent}\n\nThe following improvement suggestion(s) apply to this cell:\n${suggestions}\n\nPlease generate a revised version of this cell that follows the above suggestion(s).`;
+                      setSuggestionModal({ cellIndex: index, text: '', loading: true, error: '' });
+                      try {
+                        const apiKey = import.meta.env.VITE_LLM_API_KEY;
+                        if (!apiKey) {
+                          setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'API key not set. Please set VITE_LLM_API_KEY in your environment.' });
+                          return;
+                        }
+                        const reqBody = JSON.stringify({
+                          model: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
+                          prompt: prompt
+                        }, null, 2);
+                        const response = await fetch('https://mixtral-8x7b-instruct-v0-1-maas-apicast-production.apps.prod.rhoai.rh-aiservices-bu.com:443/v1/completions', {
+                          method: 'POST',
+                          headers: {
+                            'accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`,
+                          },
+                          body: reqBody
+                        });
+                        let respText = '';
+                        if (!response.ok) {
+                          respText = await response.text();
+                          setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'Error from LLM: ' + respText });
+                        } else {
+                          respText = await response.text();
+                          const data = JSON.parse(respText);
+                          const suggestion = data.choices && data.choices[0] && data.choices[0].text ? data.choices[0].text : JSON.stringify(data);
+                          setSuggestionModal({ cellIndex: index, text: suggestion, loading: false, error: '' });
+                        }
+                        if (logLLMRequest) logLLMRequest(reqBody, respText);
+                      } catch (err) {
+                        setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'Failed to fetch suggestion: ' + err.message });
+                        if (logLLMRequest) logLLMRequest(prompt, 'ERROR: ' + err.message);
+                      }
+                    }}
+                  >
+                    Suggest Improvements
+                  </Button>
+                </div>
+              )}
+              {/* Modal for suggestion below the cell */}
+              {suggestionModal.cellIndex === index && (
+                <div style={{ margin: '16px 0', padding: '16px', background: '#f6f6ff', border: '1px solid #b3b3e6', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong>Suggested Revision</strong>
+                    <Button variant="link" onClick={() => setSuggestionModal({ cellIndex: null, text: '', loading: false, error: '' })}>Close</Button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  {suggestionModal.loading ? (
+                    <div style={{ marginTop: 8 }}>Loading...</div>
+                  ) : suggestionModal.error ? (
+                    <div style={{ color: 'red', marginTop: 8 }}>{suggestionModal.error}</div>
+                  ) : (
+                    <pre style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>{suggestionModal.text}</pre>
+                  )}
+                </div>
+              )}
+              {/* Markdown Cell */}
+              {cell.cell_type === 'markdown' ? (
+                <div
+                  ref={isHighlighted ? contentRef : undefined}
+                  className="notebook-markdown-cell notebook-markdown-content"
+                  style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%' }}
+                  dangerouslySetInnerHTML={{ __html: marked.parse(cellText) }}
+                ></div>
+              ) : null}
+              {/* Code Cell with Gutter */}
+              {cell.cell_type === 'code' ? (
+                <>
+                  <div className="notebook-code-gutter">
+                    <span>In [{execCount || ' '}]:</span>
+                  </div>
+                  <pre
+                    ref={isHighlighted ? contentRef : undefined}
+                    className="notebook-code-cell"
+                    style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%', margin: 0, borderRadius: '0 6px 6px 0' }}
+                  >
+                    <code style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%', display: 'block' }}>{cellText}</code>
+                  </pre>
+                </>
+              ) : null}
+              {/* Output Area */}
+              {cell.outputs && cell.outputs.length > 0 && (
+                <div className="notebook-output">
+                  <h4>Output:</h4>
+                  {cell.outputs.map((output, outputIndex) => (
+                    <div key={outputIndex} className="mb-1 last:mb-0">
+                      {/* Stream Output (stdout/stderr) */}
+                      {output.output_type === 'stream' && (
+                        <pre className={output.name === 'stderr' ? 'text-red-600' : ''}>{output.text.join('')}</pre>
+                      )}
+                      {/* Execute Result / Display Data */}
+                      {(output.output_type === 'execute_result' || output.output_type === 'display_data') && output.data && (
+                        <div>
+                          {output.data['text/html'] && (
+                            <div dangerouslySetInnerHTML={{ __html: output.data['text/html'].join('') }}></div>
+                          )}
+                          {!output.data['text/html'] && output.data['text/plain'] && (
+                            <pre>{output.data['text/plain'].join('')}</pre>
+                          )}
+                          {output.data['image/png'] && (
+                            <img src={`data:image/png;base64,${output.data['image/png']}`} alt="Notebook Output" style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px', border: '1px solid #e0e0e0' }} />
+                          )}
+                          {output.data['image/jpeg'] && (
+                            <img src={`data:image/jpeg;base64,${output.data['image/jpeg']}`} alt="Notebook Output" style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px', border: '1px solid #e0e0e0' }} />
+                          )}
+                          {output.data['image/svg+xml'] && (
+                            <div dangerouslySetInnerHTML={{ __html: output.data['image/svg+xml'].join('') }} style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px', border: '1px solid #e0e0e0' }}></div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </React.Fragment>
         );
       })}
     </div>
   );
 };
 
+export const AdminLog = ({ logs }) => (
+  <div style={{ padding: 24 }}>
+    <h2>LLM Request/Response Log</h2>
+    {logs.length === 0 ? (
+      <div>No requests made yet.</div>
+    ) : (
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+        {logs.map((log, i) => (
+          <div key={i} style={{ marginBottom: 32, padding: 16, border: '1px solid #ccc', borderRadius: 8, background: '#fafaff' }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Request #{i + 1}</div>
+            <pre style={{ background: '#f6f6f6', padding: 8, borderRadius: 4, overflowX: 'auto' }}>{log.request}</pre>
+            <div style={{ fontWeight: 600, margin: '12px 0 4px 0' }}>Response</div>
+            <pre style={{ background: '#f6f6f6', padding: 8, borderRadius: 4, overflowX: 'auto' }}>{log.response}</pre>
+          </div>
+        ))}
+      </div>
+    )}
+    <Link to="/">Back to App</Link>
+  </div>
+);
+
 // Main App component
-const App = () => {
+const App = ({ logLLMRequest }) => {
   const [loadedNotebook, setLoadedNotebook] = useState(null);
   const [reviewResults, setReviewResults] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
@@ -153,6 +286,10 @@ const App = () => {
   // State for flashing notebook cells
   const [flashCellIndices, setFlashCellIndices] = useState([]);
   const flashTimeoutRef = useRef(null);
+  // Add state for missing (red X) flash
+  const [missingCellIndices, setMissingCellIndices] = useState([]);
+  // In App, track the status of the currently highlighted review row
+  const [highlightedStatus, setHighlightedStatus] = useState(null);
 
   // When loading starts, reset visibleRows
   useEffect(() => {
@@ -525,11 +662,21 @@ const App = () => {
   };
 
   // Handler for review row click: highlight and flash
-  const handleReviewRowClick = (indices) => {
+  const handleReviewRowClick = (indices, status) => {
     setHighlightedCellIndices(indices);
+    setHighlightedStatus(status);
     if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
     setFlashCellIndices(indices);
-    flashTimeoutRef.current = setTimeout(() => setFlashCellIndices([]), 700);
+    if (status === '❌') {
+      setMissingCellIndices(indices);
+      flashTimeoutRef.current = setTimeout(() => {
+        setFlashCellIndices([]);
+        setMissingCellIndices([]);
+      }, 700);
+    } else {
+      setMissingCellIndices([]);
+      flashTimeoutRef.current = setTimeout(() => setFlashCellIndices([]), 700);
+    }
   };
 
   // Add flash CSS
@@ -544,6 +691,22 @@ const App = () => {
         @keyframes notebook-flash-bg {
           0% { background-color: #fffbe6; }
           60% { background-color: #fffbe6; }
+          100% { background-color: inherit; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    // Add pink flash style if not present
+    if (!document.getElementById('notebook-flash-missing-style')) {
+      const style = document.createElement('style');
+      style.id = 'notebook-flash-missing-style';
+      style.innerHTML = `
+        .notebook-flash-missing {
+          animation: notebook-flash-missing-bg 0.7s;
+        }
+        @keyframes notebook-flash-missing-bg {
+          0% { background-color: #ffe6ef; }
+          60% { background-color: #ffe6ef; }
           100% { background-color: inherit; }
         }
       `;
@@ -586,6 +749,9 @@ const App = () => {
                       notebook={editedNotebook || loadedNotebook}
                       highlightedCellIndices={highlightedCellIndices}
                       flashCellIndices={flashCellIndices}
+                      missingCellIndices={missingCellIndices}
+                      reviewResults={reviewResults}
+                      logLLMRequest={logLLMRequest}
                     />
                   ) : (
                     <Bullseye style={{ height: '100%', minHeight: '300px' }}>
@@ -644,7 +810,7 @@ const App = () => {
                         <Tr
                           key={result.id}
                           isClickable
-                          onClick={() => handleReviewRowClick(result.relevantCells)}
+                          onClick={() => handleReviewRowClick(result.relevantCells, result.status)}
                           style={{ opacity: idx < visibleRows ? 1 : 0, pointerEvents: idx < visibleRows ? 'auto' : 'none', transition: 'opacity 0.7s' }}
                         >
                           <Td dataLabel="Guideline">
@@ -652,7 +818,9 @@ const App = () => {
                             <div style={{ fontSize: '0.85em', color: 'var(--pf-v6-global--Color--200)', fontStyle: 'italic', marginTop: 4 }}>{result.description}</div>
                           </Td>
                           <Td dataLabel="Status" style={{ textAlign: 'center', fontSize: '1.2em' }}>{result.status}</Td>
-                          <Td dataLabel="Suggestion" style={{ color: 'var(--pf-v6-global--Color--200)' }}>{result.suggestion}</Td>
+                          <Td dataLabel="Suggestion" style={{ color: 'var(--pf-v6-global--Color--200)', position: 'relative' }}>
+                            {result.suggestion}
+                          </Td>
                         </Tr>
                       ))}
                     </Tbody>
@@ -665,6 +833,9 @@ const App = () => {
                   </div>
                 </Bullseye>
               )}
+              <div style={{ position: 'absolute', top: 12, right: 24, zIndex: 1000 }}>
+                <Link to="/admin">Admin</Link>
+              </div>
             </CardBody>
           </Card>
         </SplitItem>
