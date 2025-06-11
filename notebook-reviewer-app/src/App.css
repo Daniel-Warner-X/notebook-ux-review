@@ -39,3 +39,101 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Jupyter-like notebook cell styles */
+
+.notebook-cell-container {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 0.5px 1.5px rgba(0,0,0,0.03);
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: row;
+  padding: 0;
+  overflow: visible;
+  border: 1.5px solid #e0e0e0;
+  transition: border-color 0.2s;
+}
+
+.notebook-cell-highlighted {
+  border-color: #268bd2 !important; /* blue */
+}
+
+.notebook-cell-highlighted-missing {
+  border-color: #e75480 !important; /* pink/red for missing */
+}
+
+.notebook-cell-highlighted-could-improve {
+  border-color: #7c3aed !important; /* purple for blue diamond, optional */
+}
+
+.notebook-code-cell {
+  background: #f7f7f7;
+  font-family: 'Fira Mono', 'Consolas', 'Menlo', 'Monaco', monospace;
+  font-size: 1em;
+  padding: 1rem 1rem 1rem 0;
+  border-radius: 0 6px 6px 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+  border-left: 1px solid #e0e0e0;
+}
+
+.notebook-code-gutter {
+  background: #fafafa;
+  color: #b58900;
+  font-family: 'Fira Mono', 'Consolas', 'Menlo', 'Monaco', monospace;
+  font-size: 0.95em;
+  padding: 1rem 0.75rem 1rem 1rem;
+  border-radius: 6px 0 0 6px;
+  border-right: 1px solid #e0e0e0;
+  min-width: 60px;
+  text-align: right;
+  user-select: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.notebook-markdown-cell {
+  background: #fff;
+  font-size: 1.05em;
+  padding: 1.2rem 1.5rem;
+  border-radius: 6px;
+  color: #222;
+  line-height: 1.7;
+  width: 100%;
+}
+
+.notebook-output {
+  background: #f9f7ed;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin: 0.5rem 0 0 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.98em;
+  color: #222;
+  overflow-x: auto;
+}
+
+.notebook-output h4 {
+  font-size: 1em;
+  margin-bottom: 0.5em;
+  color: #555;
+}
+
+.notebook-cell-container:focus {
+  outline: 2px solid #268bd2;
+  outline-offset: 2px;
+}
+
+.notebook-flash-missing {
+  animation: notebook-flash-missing-bg 0.7s;
+}
+@keyframes notebook-flash-missing-bg {
+  0% { background-color: #ffe6ef; }
+  60% { background-color: #ffe6ef; }
+  100% { background-color: inherit; }
+}
+
+/* For highlighted cells, override the border color as needed in the highlight class (already handled by border-blue-500, etc.) */
