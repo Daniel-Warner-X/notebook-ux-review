@@ -833,6 +833,9 @@ const App = ({ logLLMRequest }) => {
                   </div>
                 </Bullseye>
               )}
+              <div style={{ position: 'absolute', top: 12, right: 24, zIndex: 1000 }}>
+                <Link to="/admin">Admin</Link>
+              </div>
             </CardBody>
           </Card>
         </SplitItem>
