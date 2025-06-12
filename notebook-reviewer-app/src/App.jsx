@@ -17,6 +17,14 @@ import {
 import { Modal } from '@patternfly/react-core';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 
+// Configure marked to filter out horizontal rules
+marked.use({
+  renderer: {
+    hr() {
+      return ''; // Return empty string for horizontal rules
+    }
+  }
+});
 
 // Component to render Jupyter notebook cells (Markdown and Code with Outputs)
 // Now accepts 'highlightedCellIndices' prop to apply highlighting
@@ -64,7 +72,65 @@ const NotebookRenderer = React.forwardRef(({ notebook, highlightedCellIndices = 
       style.id = 'notebook-responsive-style';
       style.innerHTML = `
         .notebook-markdown-content img, .notebook-markdown-content table { max-width: 100%; height: auto; }
-        .notebook-markdown-content { width: 100%; box-sizing: border-box; }
+        .notebook-markdown-content { 
+          width: 100%; 
+          box-sizing: border-box; 
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          word-break: normal;
+        }
+        .notebook-markdown-content h1 { font-size: 1.8em; margin: 0.8em 0; }
+        .notebook-markdown-content p {
+          margin-bottom: 1rem;
+        }
+        .notebook-markdown-content ul,
+        .notebook-markdown-content ol {
+          padding-left: 1rem;
+          margin: 0.5rem 0;
+        }
+        .notebook-markdown-content li {
+          margin: 0.25rem 0;
+        }
+        .notebook-code-cell {
+          width: 100%;
+          box-sizing: border-box;
+          overflow-x: auto;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          word-break: normal;
+        }
+        .notebook-code-cell code {
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          word-break: normal;
+        }
+        .notebook-cell-container {
+          width: 100%;
+          box-sizing: border-box;
+          overflow: hidden;
+        }
+        .notebook-output {
+          width: 100%;
+          box-sizing: border-box;
+          overflow-x: auto;
+        }
+        .notebook-output pre {
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          word-break: normal;
+        }
+        /* Add styles for code blocks in markdown */
+        .notebook-markdown-content pre {
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          word-break: normal;
+          overflow-x: auto;
+        }
+        .notebook-markdown-content code {
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          word-break: normal;
+        }
       `;
       document.head.appendChild(style);
     }
@@ -107,8 +173,6 @@ const NotebookRenderer = React.forwardRef(({ notebook, highlightedCellIndices = 
             setMinHeight(contentRef.current.offsetHeight);
           }
         }, [isEditing]);
-        // Jupyter-like: code cell execution count
-        const execCount = cell.execution_count !== undefined && cell.execution_count !== null ? cell.execution_count : '';
         // Determine flash class: pink for missing, yellow for normal
         let flashClass = '';
         if (missingCellIndices.includes(index)) {
@@ -153,24 +217,24 @@ const NotebookRenderer = React.forwardRef(({ notebook, highlightedCellIndices = 
                   <div
                     ref={isHighlighted ? contentRef : undefined}
                     className="notebook-markdown-cell notebook-markdown-content"
-                    style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%' }}
+                    style={{ width: '100%' }}
                     dangerouslySetInnerHTML={{ __html: marked.parse(cellText) }}
                   ></div>
                 ) : null}
-                {/* Code Cell with Gutter */}
+                {/* Code Cell */}
                 {cell.cell_type === 'code' ? (
-                  <>
-                    <div className="notebook-code-gutter">
-                      <span>In [{execCount || ' '}]:</span>
-                    </div>
-                    <pre
-                      ref={isHighlighted ? contentRef : undefined}
-                      className="notebook-code-cell"
-                      style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%', margin: 0, borderRadius: '0 6px 6px 0' }}
-                    >
-                      <code style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%', display: 'block' }}>{cellText}</code>
-                    </pre>
-                  </>
+                  <pre
+                    ref={isHighlighted ? contentRef : undefined}
+                    className="notebook-code-cell"
+                    style={{ 
+                      margin: 0, 
+                      borderRadius: 6,
+                      padding: '8px',
+                      background: '#f8f8f8'
+                    }}
+                  >
+                    <code>{cellText}</code>
+                  </pre>
                 ) : null}
                 {/* Output Area */}
                 {cell.outputs && cell.outputs.length > 0 && (
@@ -180,7 +244,7 @@ const NotebookRenderer = React.forwardRef(({ notebook, highlightedCellIndices = 
                       <div key={outputIndex} className="mb-1 last:mb-0">
                         {/* Stream Output (stdout/stderr) */}
                         {output.output_type === 'stream' && (
-                          <pre className={output.name === 'stderr' ? 'text-red-600' : ''}>{output.text.join('')}</pre>
+                          <pre style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word', wordBreak: 'normal' }} className={output.name === 'stderr' ? 'text-red-600' : ''}>{output.text.join('')}</pre>
                         )}
                         {/* Execute Result / Display Data */}
                         {(output.output_type === 'execute_result' || output.output_type === 'display_data') && output.data && (
@@ -896,7 +960,7 @@ const App = ({ logLLMRequest }) => {
               </div>
             </CardBody>
             {editedNotebook && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '24px 24px 0 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '24px 24px 24px 24px' }}>
                 <Button variant="primary" onClick={handleDownload}>
                   Download Revised Notebook
                 </Button>
@@ -919,7 +983,7 @@ const App = ({ logLLMRequest }) => {
                   <Table aria-label="UX review results" variant="compact" style={{ minWidth: '100%' }}>
                     <Thead>
                       <Tr>
-                        <Th screenReaderText="Expand or collapse row">Expand</Th>
+                        <Th screenReaderText="Expand or collapse row"></Th>
                         <Th aria-label="Guideline name and description">Guideline</Th>
                         <Th aria-label="Review status">Status</Th>
                         <Th aria-label="Improvement suggestion">Suggestion</Th>
