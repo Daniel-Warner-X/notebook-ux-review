@@ -20,12 +20,15 @@ import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 
 // Component to render Jupyter notebook cells (Markdown and Code with Outputs)
 // Now accepts 'highlightedCellIndices' prop to apply highlighting
-const NotebookRenderer = ({ notebook, highlightedCellIndices = [], flashCellIndices = [], missingCellIndices = [], reviewResults = [], logLLMRequest }) => {
+const NotebookRenderer = React.forwardRef(({ notebook, highlightedCellIndices = [], flashCellIndices = [], missingCellIndices = [], reviewResults = [], logLLMRequest, onAcceptSuggestion, scrollContainerRef }, ref) => {
   const cellRefs = useRef([]); // To hold refs to each cell for scrolling
-  const [editedNotebook, setEditedNotebook] = useState(null);
   const [editingCell, setEditingCell] = React.useState(null);
   // Add state for suggestion modal
   const [suggestionModal, setSuggestionModal] = useState({ cellIndex: null, text: '', loading: false, error: '' });
+  // Add state for editable suggestion text
+  const [editedSuggestionText, setEditedSuggestionText] = React.useState('');
+  // Ref for the editable suggestion textarea
+  const suggestionTextareaRef = React.useRef(null);
 
   if (!notebook || !notebook.cells) {
     return <div className="text-gray-500 text-center py-8">No notebook loaded for rendering.</div>;
@@ -35,26 +38,24 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [], flashCellIndi
     cellRefs.current = cellRefs.current.slice(0, notebook.cells.length);
   }, [notebook.cells.length]);
 
+  // Simplified scroll handler for cells
+  const scrollCellIntoView = (index) => {
+    const targetCell = cellRefs.current[index];
+    if (targetCell) {
+      targetCell.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  };
+
+  // When highlighted cells change, scroll to the first one
   React.useEffect(() => {
     if (highlightedCellIndices.length > 0) {
       const firstHighlightedIndex = highlightedCellIndices[0];
-      const targetCell = cellRefs.current[firstHighlightedIndex];
-      if (targetCell) {
-        requestAnimationFrame(() => {
-          targetCell.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-      }
+      scrollCellIntoView(firstHighlightedIndex);
     }
   }, [highlightedCellIndices]);
-
-  // Handler for editing cell text
-  const handleEditCell = (index, newText) => {
-    if (!notebook) return;
-    const newCells = notebook.cells.map((cell, i) =>
-      i === index ? { ...cell, source: [newText] } : cell
-    );
-    setEditedNotebook({ ...notebook, cells: newCells });
-  };
 
   // Responsive notebook container
   React.useEffect(() => {
@@ -68,6 +69,29 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [], flashCellIndi
       document.head.appendChild(style);
     }
   }, []);
+
+  // When the suggestion modal opens with a new suggestion, initialize the editable text
+  React.useEffect(() => {
+    if (suggestionModal.cellIndex !== null && !suggestionModal.loading && !suggestionModal.error) {
+      let initialText = suggestionModal.text;
+      // If the suggestion is wrapped in code block markdown, extract it
+      const codeBlockMatch = initialText.match(/```[a-zA-Z]*\n([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        initialText = codeBlockMatch[1].trim();
+      } else {
+        initialText = initialText.trim();
+      }
+      setEditedSuggestionText(initialText);
+    }
+  }, [suggestionModal.cellIndex, suggestionModal.text, suggestionModal.loading, suggestionModal.error]);
+
+  // Auto-resize the textarea to fit content
+  React.useEffect(() => {
+    if (suggestionTextareaRef.current) {
+      suggestionTextareaRef.current.style.height = 'auto';
+      suggestionTextareaRef.current.style.height = suggestionTextareaRef.current.scrollHeight + 'px';
+    }
+  }, [editedSuggestionText, suggestionModal.cellIndex]);
 
   return (
     <div style={{ width: '100%' }}>
@@ -104,148 +128,205 @@ const NotebookRenderer = ({ notebook, highlightedCellIndices = [], flashCellIndi
         }
         return (
           <React.Fragment key={index}>
-            {index > 0 && <hr style={{ border: 'none', borderTop: '1.5px solid #e0e0e0', margin: '24px 0' }} />}
             <div
               ref={el => cellRefs.current[index] = el}
               className={`notebook-cell-container${highlightClass ? ' ' + highlightClass : ''}${flashClass ? ' ' + flashClass : ''}`}
               tabIndex={isHighlighted ? 0 : -1}
-              style={{ width: '100%', position: 'relative' }}
+              style={{
+                width: '100%',
+                position: 'relative',
+                marginBottom: index < notebook.cells.length - 1 ? 20 : 0,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                border: '1px solid #e0e0e0',
+                borderRadius: 8,
+                background: '#fff',
+                cursor: 'pointer'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                scrollCellIntoView(index);
+              }}
             >
-              {needsImprovement && !onlyGreenCheck && (
-                <div style={{ width: '100%', margin: '12px 0 8px 0', display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={async e => {
-                      e.stopPropagation();
-                      // Find all review results for this cell that are ❌ or 🔹
-                      const relevantReviews = reviewResults.filter(r => (r.status === '❌' || r.status === '🔹') && r.relevantCells.includes(index));
-                      const suggestions = relevantReviews.map(r => `- ${r.suggestion}`).join('\n');
-                      const cellType = cell.cell_type;
-                      const cellContent = cell.source.join('');
-                      const prompt = `You are an expert Jupyter notebook reviewer.\n\nCell type: ${cellType}\n\nCell content:\n${cellContent}\n\nThe following improvement suggestion(s) apply to this cell:\n${suggestions}\n\nPlease generate a revised version of this cell that follows the above suggestion(s).`;
-                      setSuggestionModal({ cellIndex: index, text: '', loading: true, error: '' });
-                      try {
-                        const apiKey = import.meta.env.VITE_LLM_API_KEY;
-                        if (!apiKey) {
-                          setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'API key not set. Please set VITE_LLM_API_KEY in your environment.' });
-                          return;
-                        }
-                        const reqBody = JSON.stringify({
-                          model: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
-                          prompt: prompt
-                        }, null, 2);
-                        const response = await fetch('https://mixtral-8x7b-instruct-v0-1-maas-apicast-production.apps.prod.rhoai.rh-aiservices-bu.com:443/v1/completions', {
-                          method: 'POST',
-                          headers: {
-                            'accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`,
-                          },
-                          body: reqBody
-                        });
-                        let respText = '';
-                        if (!response.ok) {
-                          respText = await response.text();
-                          setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'Error from LLM: ' + respText });
-                        } else {
-                          respText = await response.text();
-                          const data = JSON.parse(respText);
-                          const suggestion = data.choices && data.choices[0] && data.choices[0].text ? data.choices[0].text : JSON.stringify(data);
-                          setSuggestionModal({ cellIndex: index, text: suggestion, loading: false, error: '' });
-                        }
-                        if (logLLMRequest) logLLMRequest(reqBody, respText);
-                      } catch (err) {
-                        setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'Failed to fetch suggestion: ' + err.message });
-                        if (logLLMRequest) logLLMRequest(prompt, 'ERROR: ' + err.message);
-                      }
-                    }}
-                  >
-                    Suggest Improvements
-                  </Button>
-                </div>
-              )}
-              {/* Modal for suggestion below the cell */}
-              {suggestionModal.cellIndex === index && (
-                <div style={{ margin: '16px 0', padding: '16px', background: '#f6f6ff', border: '1px solid #b3b3e6', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong>Suggested Revision</strong>
-                    <Button variant="link" onClick={() => setSuggestionModal({ cellIndex: null, text: '', loading: false, error: '' })}>Close</Button>
-                  </div>
-                  {suggestionModal.loading ? (
-                    <div style={{ marginTop: 8 }}>Loading...</div>
-                  ) : suggestionModal.error ? (
-                    <div style={{ color: 'red', marginTop: 8 }}>{suggestionModal.error}</div>
-                  ) : (
-                    <pre style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>{suggestionModal.text}</pre>
-                  )}
-                </div>
-              )}
-              {/* Markdown Cell */}
-              {cell.cell_type === 'markdown' ? (
-                <div
-                  ref={isHighlighted ? contentRef : undefined}
-                  className="notebook-markdown-cell notebook-markdown-content"
-                  style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%' }}
-                  dangerouslySetInnerHTML={{ __html: marked.parse(cellText) }}
-                ></div>
-              ) : null}
-              {/* Code Cell with Gutter */}
-              {cell.cell_type === 'code' ? (
-                <>
-                  <div className="notebook-code-gutter">
-                    <span>In [{execCount || ' '}]:</span>
-                  </div>
-                  <pre
+              <CardBody style={{ padding: 20 }}>
+                {/* Markdown Cell */}
+                {cell.cell_type === 'markdown' ? (
+                  <div
                     ref={isHighlighted ? contentRef : undefined}
-                    className="notebook-code-cell"
-                    style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%', margin: 0, borderRadius: '0 6px 6px 0' }}
-                  >
-                    <code style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%', display: 'block' }}>{cellText}</code>
-                  </pre>
-                </>
-              ) : null}
-              {/* Output Area */}
-              {cell.outputs && cell.outputs.length > 0 && (
-                <div className="notebook-output">
-                  <h4>Output:</h4>
-                  {cell.outputs.map((output, outputIndex) => (
-                    <div key={outputIndex} className="mb-1 last:mb-0">
-                      {/* Stream Output (stdout/stderr) */}
-                      {output.output_type === 'stream' && (
-                        <pre className={output.name === 'stderr' ? 'text-red-600' : ''}>{output.text.join('')}</pre>
-                      )}
-                      {/* Execute Result / Display Data */}
-                      {(output.output_type === 'execute_result' || output.output_type === 'display_data') && output.data && (
-                        <div>
-                          {output.data['text/html'] && (
-                            <div dangerouslySetInnerHTML={{ __html: output.data['text/html'].join('') }}></div>
-                          )}
-                          {!output.data['text/html'] && output.data['text/plain'] && (
-                            <pre>{output.data['text/plain'].join('')}</pre>
-                          )}
-                          {output.data['image/png'] && (
-                            <img src={`data:image/png;base64,${output.data['image/png']}`} alt="Notebook Output" style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px', border: '1px solid #e0e0e0' }} />
-                          )}
-                          {output.data['image/jpeg'] && (
-                            <img src={`data:image/jpeg;base64,${output.data['image/jpeg']}`} alt="Notebook Output" style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px', border: '1px solid #e0e0e0' }} />
-                          )}
-                          {output.data['image/svg+xml'] && (
-                            <div dangerouslySetInnerHTML={{ __html: output.data['image/svg+xml'].join('') }} style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px', border: '1px solid #e0e0e0' }}></div>
-                          )}
-                        </div>
-                      )}
+                    className="notebook-markdown-cell notebook-markdown-content"
+                    style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%' }}
+                    dangerouslySetInnerHTML={{ __html: marked.parse(cellText) }}
+                  ></div>
+                ) : null}
+                {/* Code Cell with Gutter */}
+                {cell.cell_type === 'code' ? (
+                  <>
+                    <div className="notebook-code-gutter">
+                      <span>In [{execCount || ' '}]:</span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <pre
+                      ref={isHighlighted ? contentRef : undefined}
+                      className="notebook-code-cell"
+                      style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%', margin: 0, borderRadius: '0 6px 6px 0' }}
+                    >
+                      <code style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap', width: '100%', display: 'block' }}>{cellText}</code>
+                    </pre>
+                  </>
+                ) : null}
+                {/* Output Area */}
+                {cell.outputs && cell.outputs.length > 0 && (
+                  <div className="notebook-output">
+                    <h4>Output:</h4>
+                    {cell.outputs.map((output, outputIndex) => (
+                      <div key={outputIndex} className="mb-1 last:mb-0">
+                        {/* Stream Output (stdout/stderr) */}
+                        {output.output_type === 'stream' && (
+                          <pre className={output.name === 'stderr' ? 'text-red-600' : ''}>{output.text.join('')}</pre>
+                        )}
+                        {/* Execute Result / Display Data */}
+                        {(output.output_type === 'execute_result' || output.output_type === 'display_data') && output.data && (
+                          <div>
+                            {output.data['text/html'] && (
+                              <div dangerouslySetInnerHTML={{ __html: output.data['text/html'].join('') }}></div>
+                            )}
+                            {!output.data['text/html'] && output.data['text/plain'] && (
+                              <pre>{output.data['text/plain'].join('')}</pre>
+                            )}
+                            {output.data['image/png'] && (
+                              <img src={`data:image/png;base64,${output.data['image/png']}`} alt="Notebook Output" style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px', border: '1px solid #e0e0e0' }} />
+                            )}
+                            {output.data['image/jpeg'] && (
+                              <img src={`data:image/jpeg;base64,${output.data['image/jpeg']}`} alt="Notebook Output" style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px', border: '1px solid #e0e0e0' }} />
+                            )}
+                            {output.data['image/svg+xml'] && (
+                              <div dangerouslySetInnerHTML={{ __html: output.data['image/svg+xml'].join('') }} style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px', border: '1px solid #e0e0e0' }}></div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Modal for suggestion below the cell */}
+                {suggestionModal.cellIndex === index && (
+                  <div style={{ margin: '16px 0', padding: '16px', background: '#f6f6ff', border: '1px solid #b3b3e6', borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong>Suggested Revision</strong>
+                      <Button variant="link" onClick={() => setSuggestionModal({ cellIndex: null, text: '', loading: false, error: '' })}>Close</Button>
+                    </div>
+                    {suggestionModal.loading ? (
+                      <div style={{ marginTop: 8 }}>Loading...</div>
+                    ) : suggestionModal.error ? (
+                      <div style={{ color: 'red', marginTop: 8 }}>{suggestionModal.error}</div>
+                    ) : (
+                      <>
+                        <textarea
+                          ref={suggestionTextareaRef}
+                          style={{
+                            marginTop: 8,
+                            width: '100%',
+                            minHeight: 120,
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            padding: 8,
+                            borderRadius: 4,
+                            border: '1px solid #b3b3e6',
+                            resize: 'vertical',
+                            background: '#fff',
+                            color: '#222',
+                            overflowY: 'auto' // Add explicit overflow handling
+                          }}
+                          value={editedSuggestionText}
+                          onChange={e => setEditedSuggestionText(e.target.value)}
+                        />
+                        <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                              let newText = editedSuggestionText.trim();
+                              if (onAcceptSuggestion) {
+                                onAcceptSuggestion(index, newText);
+                              }
+                              setSuggestionModal({ cellIndex: null, text: '', loading: false, error: '' });
+                            }}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setSuggestionModal({ cellIndex: null, text: '', loading: false, error: '' })}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+                {needsImprovement && !onlyGreenCheck && (
+                  <div style={{ width: '100%', margin: '20px 0 0 0', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={async e => {
+                        e.stopPropagation();
+                        // Find all review results for this cell that are ❌ or 🔹
+                        const relevantReviews = reviewResults.filter(r => (r.status === '❌' || r.status === '🔹') && r.relevantCells.includes(index));
+                        const suggestions = relevantReviews.map(r => `- ${r.suggestion}`).join('\n');
+                        const cellType = cell.cell_type;
+                        const cellContent = cell.source.join('');
+                        const prompt = `You are an expert Jupyter notebook reviewer.\n\nCell type: ${cellType}\n\nCell content:\n${cellContent}\n\nThe following improvement suggestion(s) apply to this cell:\n${suggestions}\n\nPlease generate a revised version of this cell that follows the above suggestion(s).`;
+                        setSuggestionModal({ cellIndex: index, text: '', loading: true, error: '' });
+                        try {
+                          const apiKey = import.meta.env.VITE_LLM_API_KEY;
+                          if (!apiKey) {
+                            setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'API key not set. Please set VITE_LLM_API_KEY in your environment.' });
+                            return;
+                          }
+                          const reqBody = JSON.stringify({
+                            model: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
+                            prompt: prompt,
+                            max_tokens: 1024
+                          }, null, 2);
+                          const response = await fetch('https://mixtral-8x7b-instruct-v0-1-maas-apicast-production.apps.prod.rhoai.rh-aiservices-bu.com:443/v1/completions', {
+                            method: 'POST',
+                            headers: {
+                              'accept': 'application/json',
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${apiKey}`,
+                            },
+                            body: reqBody
+                          });
+                          let respText = '';
+                          if (!response.ok) {
+                            respText = await response.text();
+                            setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'Error from LLM: ' + respText });
+                          } else {
+                            respText = await response.text();
+                            const data = JSON.parse(respText);
+                            const suggestion = data.choices && data.choices[0] && data.choices[0].text ? data.choices[0].text : JSON.stringify(data);
+                            setSuggestionModal({ cellIndex: index, text: suggestion, loading: false, error: '' });
+                          }
+                          if (logLLMRequest) logLLMRequest(reqBody, respText);
+                        } catch (err) {
+                          setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'Failed to fetch suggestion: ' + err.message });
+                          if (logLLMRequest) logLLMRequest(prompt, 'ERROR: ' + err.message);
+                        }
+                      }}
+                    >
+                      Suggest Improvements
+                    </Button>
+                  </div>
+                )}
+              </CardBody>
             </div>
           </React.Fragment>
         );
       })}
     </div>
   );
-};
+});
 
 export const AdminLog = ({ logs }) => (
   <div style={{ padding: 24 }}>
@@ -290,6 +371,18 @@ const App = ({ logLLMRequest }) => {
   const [missingCellIndices, setMissingCellIndices] = useState([]);
   // In App, track the status of the currently highlighted review row
   const [highlightedStatus, setHighlightedStatus] = useState(null);
+  // State to track expanded review rows
+  const [expandedRows, setExpandedRows] = useState([]);
+
+  // Handler to accept a suggestion and update the notebook
+  const handleAcceptSuggestion = (cellIndex, newText) => {
+    const baseNotebook = editedNotebook || loadedNotebook;
+    if (!baseNotebook) return;
+    const newCells = baseNotebook.cells.map((cell, i) =>
+      i === cellIndex ? { ...cell, source: [newText] } : cell
+    );
+    setEditedNotebook({ ...baseNotebook, cells: newCells });
+  };
 
   // When loading starts, reset visibleRows
   useEffect(() => {
@@ -714,6 +807,25 @@ const App = ({ logLLMRequest }) => {
     }
   }, []);
 
+  // Download handler
+  const handleDownload = () => {
+    const nb = editedNotebook || loadedNotebook;
+    if (!nb) return;
+    const blob = new Blob([JSON.stringify(nb, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'notebook-ux-reviewed.ipynb';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  };
+
+  const notebookScrollRef = useRef(null);
+
   return (
     <div className="layout-gutter" style={{ height: '100vh', width: '100vw', boxSizing: 'border-box' }}>
       <Split hasGutter style={{ height: '100%' }}>
@@ -733,7 +845,8 @@ const App = ({ logLLMRequest }) => {
                   </div>
                 )}
                 <div
-                  className="flex-1 bg-gradient-to-br from-white via-blue-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200 relative overflow-y-auto h-100-custom"
+                  ref={notebookScrollRef}
+                  className="notebook-scroll-container flex-1 bg-gradient-to-br from-white via-blue-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200 relative overflow-y-auto h-100-custom"
                   onDrop={handleFileDrop}
                   onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                   onDragEnter={(e) => e.stopPropagation()}
@@ -752,6 +865,8 @@ const App = ({ logLLMRequest }) => {
                       missingCellIndices={missingCellIndices}
                       reviewResults={reviewResults}
                       logLLMRequest={logLLMRequest}
+                      onAcceptSuggestion={handleAcceptSuggestion}
+                      scrollContainerRef={notebookScrollRef}
                     />
                   ) : (
                     <Bullseye style={{ height: '100%', minHeight: '300px' }}>
@@ -780,6 +895,13 @@ const App = ({ logLLMRequest }) => {
                 )}
               </div>
             </CardBody>
+            {editedNotebook && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '24px 24px 0 24px' }}>
+                <Button variant="primary" onClick={handleDownload}>
+                  Download Revised Notebook
+                </Button>
+              </div>
+            )}
           </Card>
         </SplitItem>
         <SplitItem style={{ flex: '1 1 0', minWidth: 0, maxWidth: '50vw', height: '100%' }}>
@@ -794,35 +916,123 @@ const App = ({ logLLMRequest }) => {
                 </Bullseye>
               ) : reviewResults.length > 0 ? (
                 <div className="flex-1 pt-2 overflow-x-auto overflow-y-auto bg-gradient-to-br from-white via-purple-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl">
-                  <div className="text-gray-600 text-xs sm:text-sm mb-4 text-center p-2">
-                    ✅ = Meets expectations | 🔹 = Could be improved | ❌ = Missing | ➖ = Not applicable
-                  </div>
                   <Table aria-label="UX review results" variant="compact" style={{ minWidth: '100%' }}>
                     <Thead>
                       <Tr>
-                        <Th>Guideline</Th>
-                        <Th>Status</Th>
-                        <Th>Suggestion</Th>
+                        <Th screenReaderText="Expand or collapse row">Expand</Th>
+                        <Th aria-label="Guideline name and description">Guideline</Th>
+                        <Th aria-label="Review status">Status</Th>
+                        <Th aria-label="Improvement suggestion">Suggestion</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {reviewResults.map((result, idx) => (
-                        <Tr
-                          key={result.id}
-                          isClickable
-                          onClick={() => handleReviewRowClick(result.relevantCells, result.status)}
-                          style={{ opacity: idx < visibleRows ? 1 : 0, pointerEvents: idx < visibleRows ? 'auto' : 'none', transition: 'opacity 0.7s' }}
-                        >
-                          <Td dataLabel="Guideline">
-                            <span style={{ fontWeight: 500 }}>{result.name}</span>
-                            <div style={{ fontSize: '0.85em', color: 'var(--pf-v6-global--Color--200)', fontStyle: 'italic', marginTop: 4 }}>{result.description}</div>
-                          </Td>
-                          <Td dataLabel="Status" style={{ textAlign: 'center', fontSize: '1.2em' }}>{result.status}</Td>
-                          <Td dataLabel="Suggestion" style={{ color: 'var(--pf-v6-global--Color--200)', position: 'relative' }}>
-                            {result.suggestion}
-                          </Td>
-                        </Tr>
-                      ))}
+                      {reviewResults.map((result, idx) => {
+                        const isExpandable = result.relevantCells.length > 1;
+                        const isExpanded = expandedRows.includes(result.id);
+                        return (
+                          <React.Fragment key={result.id}>
+                            <Tr
+                              isClickable
+                              onClick={() => handleReviewRowClick(result.relevantCells, result.status)}
+                              style={{ opacity: idx < visibleRows ? 1 : 0, pointerEvents: idx < visibleRows ? 'auto' : 'none', transition: 'opacity 0.7s' }}
+                            >
+                              <Td style={{ width: 32, textAlign: 'center' }}>
+                                {isExpandable && (
+                                  <Button
+                                    variant="plain"
+                                    aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      setExpandedRows(rows =>
+                                        isExpanded ? rows.filter(id => id !== result.id) : [...rows, result.id]
+                                      );
+                                    }}
+                                    style={{ padding: 0, minWidth: 24 }}
+                                  >
+                                    {isExpanded ? '▼' : '▶'}
+                                  </Button>
+                                )}
+                              </Td>
+                              <Td dataLabel="Guideline">
+                                <span style={{ fontWeight: 500 }}>{result.name}</span>
+                                <div style={{ fontSize: '0.85em', color: 'var(--pf-v6-global--Color--200)', fontStyle: 'italic', marginTop: 4 }}>{result.description}</div>
+                              </Td>
+                              <Td dataLabel="Status" style={{ textAlign: 'center', fontSize: '1.2em' }}>
+                                <span
+                                  title={
+                                    result.status === '✅' ? 'Meets expectations' :
+                                    result.status === '🔹' ? 'Could be improved' :
+                                    result.status === '❌' ? 'Missing' :
+                                    result.status === '➖' ? 'Not applicable' :
+                                    ''
+                                  }
+                                >
+                                  {result.status}
+                                </span>
+                              </Td>
+                              <Td dataLabel="Suggestion" style={{ color: 'var(--pf-v6-global--Color--200)', position: 'relative' }}>
+                                {result.suggestion}
+                              </Td>
+                            </Tr>
+                            {isExpandable && isExpanded && (
+                              <Tr isExpanded>
+                                <Td colSpan={4} style={{ background: '#f8f8fc', padding: 0 }}>
+                                  <div style={{ padding: '12px 24px' }}>
+                                    <strong>Included Cells:</strong>
+                                    <ul style={{ margin: '8px 0 0 0', padding: 0, listStyle: 'none' }}>
+                                      {result.relevantCells.map(cellIdx => {
+                                        const cell = (editedNotebook || loadedNotebook)?.cells?.[cellIdx];
+                                        let preview = '';
+                                        if (cell) {
+                                          preview = (cell.source && cell.source.length > 0)
+                                            ? (typeof cell.source === 'string' ? cell.source : cell.source.join('')).split('\n')[0].slice(0, 80)
+                                            : '';
+                                        }
+                                        // Find the status for this cell (if per-cell status is needed, otherwise use result.status)
+                                        // For now, use the main status
+                                        return (
+                                          <li
+                                            key={cellIdx}
+                                            style={{
+                                              marginBottom: 6,
+                                              fontSize: 13,
+                                              cursor: 'pointer',
+                                              background: '#f3f3fa',
+                                              borderRadius: 4,
+                                              padding: '6px 8px',
+                                              transition: 'background 0.2s',
+                                              marginLeft: -8,
+                                              marginRight: -8,
+                                            }}
+                                            onClick={e => {
+                                              e.stopPropagation();
+                                              handleReviewRowClick([cellIdx], result.status);
+                                            }}
+                                            onMouseOver={e => (e.currentTarget.style.background = '#e6e6f7')}
+                                            onMouseOut={e => (e.currentTarget.style.background = '#f3f3fa')}
+                                          >
+                                            <span style={{ fontWeight: 500 }}>Cell {cellIdx + 1}:</span>
+                                            <span style={{ marginLeft: 8, color: '#888' }}>{preview}</span>
+                                            <span style={{ marginLeft: 12 }} title={
+                                              result.status === '✅' ? 'Meets expectations' :
+                                              result.status === '🔹' ? 'Could be improved' :
+                                              result.status === '❌' ? 'Missing' :
+                                              result.status === '➖' ? 'Not applicable' :
+                                              ''
+                                            }>
+                                              {result.status}
+                                            </span>
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                  </div>
+                                </Td>
+                              </Tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </Tbody>
                   </Table>
                 </div>
@@ -834,7 +1044,7 @@ const App = ({ logLLMRequest }) => {
                 </Bullseye>
               )}
               <div style={{ position: 'absolute', top: 12, right: 24, zIndex: 1000 }}>
-                <Link to="/admin">Admin</Link>
+                <Link to="/admin" style={{ display: 'none' }}>debug</Link>
               </div>
             </CardBody>
           </Card>
