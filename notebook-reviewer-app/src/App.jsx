@@ -340,7 +340,33 @@ const NotebookRenderer = React.forwardRef(({ notebook, highlightedCellIndices = 
                         const suggestions = relevantReviews.map(r => `- ${r.suggestion}`).join('\n');
                         const cellType = cell.cell_type;
                         const cellContent = cell.source.join('');
-                        const prompt = `You are an expert Jupyter notebook reviewer.\n\nCell type: ${cellType}\n\nCell content:\n${cellContent}\n\nThe following improvement suggestion(s) apply to this cell:\n${suggestions}\n\nPlease generate a revised version of this cell that follows the above suggestion(s).`;
+                        const prompt = `You are an expert Jupyter notebook reviewer and technical writer. Your task is to improve the following notebook cell based on specific UX guidelines.
+
+Cell type: ${cellType}
+Cell content:
+${cellContent}
+
+The following improvement suggestion(s) apply to this cell:
+${suggestions}
+
+Guidelines for your response:
+1. Be specific and actionable - provide concrete changes rather than general advice
+2. Maintain the cell's original functionality while improving its clarity and usability
+3. If the cell is code:
+   - Add clear comments explaining complex logic
+   - Break down long operations into smaller, well-named steps
+   - Use descriptive variable names
+   - Add error handling where appropriate
+4. If the cell is markdown:
+   - Use clear, concise language
+   - Structure content with appropriate headers
+   - Include examples where helpful
+   - Add context for why the following code is important
+5. Preserve any existing comments or documentation that are already good
+6. Return ONLY the improved cell content, without any explanation or markdown formatting
+7. If the cell is already optimal, return it unchanged
+
+Please generate a revised version of this cell that follows the above guidelines.`;
                         setSuggestionModal({ cellIndex: index, text: '', loading: true, error: '' });
                         try {
                           const apiKey = import.meta.env.VITE_LLM_API_KEY;
