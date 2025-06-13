@@ -140,6 +140,13 @@ console.log('Code Documentation Quality:',
 
 ## Run the Web UI Locally
 
+### 0. Create a .env file in the notebook-reviewer-app directory containing the environment variables for your LLM endpoint and API Key.
+
+```
+VITE_LLM_API_KEY="Your API Key Goes Here"
+VITE_LLM_API_ENDPOINT="Your API Endpoint URL Goes Here"
+```
+
 ### 1. Create a New React Project
 
 Use Vite to scaffold a new React app:

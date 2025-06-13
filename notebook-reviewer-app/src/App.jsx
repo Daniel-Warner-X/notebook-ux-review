@@ -370,8 +370,13 @@ Please generate a revised version of this cell that follows the above guidelines
                         setSuggestionModal({ cellIndex: index, text: '', loading: true, error: '' });
                         try {
                           const apiKey = import.meta.env.VITE_LLM_API_KEY;
+                          const apiEndpoint = import.meta.env.VITE_LLM_API_ENDPOINT;
                           if (!apiKey) {
                             setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'API key not set. Please set VITE_LLM_API_KEY in your environment.' });
+                            return;
+                          }
+                          if (!apiEndpoint) {
+                            setSuggestionModal({ cellIndex: index, text: '', loading: false, error: 'API endpoint not set. Please set VITE_LLM_API_ENDPOINT in your environment.' });
                             return;
                           }
                           const reqBody = JSON.stringify({
@@ -379,7 +384,7 @@ Please generate a revised version of this cell that follows the above guidelines
                             prompt: prompt,
                             max_tokens: 1024
                           }, null, 2);
-                          const response = await fetch('https://mixtral-8x7b-instruct-v0-1-maas-apicast-production.apps.prod.rhoai.rh-aiservices-bu.com:443/v1/completions', {
+                          const response = await fetch(apiEndpoint, {
                             method: 'POST',
                             headers: {
                               'accept': 'application/json',
