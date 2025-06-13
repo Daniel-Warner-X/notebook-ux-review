@@ -437,8 +437,10 @@ const App = ({ logLLMRequest }) => {
   const [highlightedStatus, setHighlightedStatus] = useState(null);
   // State to track expanded review rows
   const [expandedRows, setExpandedRows] = useState([]);
+  // Change acceptedSuggestions to track cell-review pairs
+  const [acceptedSuggestions, setAcceptedSuggestions] = useState(new Map());
 
-  // Handler to accept a suggestion and update the notebook
+  // Update handleAcceptSuggestion to track accepted suggestions by cell-review pair
   const handleAcceptSuggestion = (cellIndex, newText) => {
     const baseNotebook = editedNotebook || loadedNotebook;
     if (!baseNotebook) return;
@@ -446,6 +448,19 @@ const App = ({ logLLMRequest }) => {
       i === cellIndex ? { ...cell, source: [newText] } : cell
     );
     setEditedNotebook({ ...baseNotebook, cells: newCells });
+    
+    // Find the review result that includes this cell and mark it as accepted for this specific cell
+    const relevantResult = reviewResults.find(result => 
+      result.relevantCells.includes(cellIndex) && 
+      (result.status === '❌' || result.status === '🔹')
+    );
+    if (relevantResult) {
+      setAcceptedSuggestions(prev => {
+        const newMap = new Map(prev);
+        newMap.set(`${relevantResult.id}-${cellIndex}`, true);
+        return newMap;
+      });
+    }
   };
 
   // When loading starts, reset visibleRows
@@ -993,17 +1008,31 @@ const App = ({ logLLMRequest }) => {
                       {reviewResults.map((result, idx) => {
                         const isExpandable = result.relevantCells.length > 1;
                         const isExpanded = expandedRows.includes(result.id);
+                        // Check if all child cells have had their suggestions accepted
+                        const allChildrenAccepted = isExpandable && result.relevantCells.every(cellIdx => 
+                          acceptedSuggestions.has(`${result.id}-${cellIdx}`)
+                        );
+                        // A row is considered accepted if either:
+                        // 1. It's a non-expandable row and its suggestion was accepted
+                        // 2. It's an expandable row and all its children have been accepted
+                        const isAccepted = (!isExpandable && acceptedSuggestions.has(`${result.id}-${result.relevantCells[0]}`)) || allChildrenAccepted;
                         return (
                           <React.Fragment key={result.id}>
                             <Tr
-                              isClickable
-                              onClick={() => handleReviewRowClick(result.relevantCells, result.status)}
-                              style={{ opacity: idx < visibleRows ? 1 : 0, pointerEvents: idx < visibleRows ? 'auto' : 'none', transition: 'opacity 0.7s' }}
+                              isClickable={!isAccepted}
+                              onClick={() => !isAccepted && handleReviewRowClick(result.relevantCells, result.status)}
+                              style={{ 
+                                opacity: idx < visibleRows ? (isAccepted ? 0.6 : 1) : 0, 
+                                pointerEvents: idx < visibleRows ? (isAccepted ? 'none' : 'auto') : 'none', 
+                                transition: 'opacity 0.7s',
+                                background: isAccepted ? '#f8f8f8' : undefined
+                              }}
                             >
                               <Td style={{ width: 32, textAlign: 'center' }}>
-                                {isExpandable && (
-                                  <Button
-                                    variant="plain"
+                                {isExpandable && !isAccepted && (
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
                                     aria-label={isExpanded ? 'Collapse' : 'Expand'}
                                     onClick={e => {
                                       e.stopPropagation();
@@ -1011,19 +1040,34 @@ const App = ({ logLLMRequest }) => {
                                         isExpanded ? rows.filter(id => id !== result.id) : [...rows, result.id]
                                       );
                                     }}
-                                    style={{ padding: 0, minWidth: 24 }}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.stopPropagation();
+                                        setExpandedRows(rows =>
+                                          isExpanded ? rows.filter(id => id !== result.id) : [...rows, result.id]
+                                        );
+                                      }
+                                    }}
+                                    style={{ 
+                                      cursor: 'pointer',
+                                      display: 'inline-block',
+                                      padding: '4px',
+                                      userSelect: 'none',
+                                      color: 'var(--pf-v6-global--Color--200)'
+                                    }}
                                   >
                                     {isExpanded ? '▼' : '▶'}
-                                  </Button>
+                                  </span>
                                 )}
                               </Td>
                               <Td dataLabel="Guideline">
-                                <span style={{ fontWeight: 500 }}>{result.name}</span>
+                                <span style={{ fontWeight: 500, color: isAccepted ? 'var(--pf-v6-global--Color--200)' : undefined }}>{result.name}</span>
                                 <div style={{ fontSize: '0.85em', color: 'var(--pf-v6-global--Color--200)', fontStyle: 'italic', marginTop: 4 }}>{result.description}</div>
                               </Td>
                               <Td dataLabel="Status" style={{ textAlign: 'center', fontSize: '1.2em' }}>
                                 <span
                                   title={
+                                    isAccepted ? (allChildrenAccepted ? 'All suggestions accepted' : 'Suggestion accepted') :
                                     result.status === '✅' ? 'Meets expectations' :
                                     result.status === '🔹' ? 'Could be improved' :
                                     result.status === '❌' ? 'Missing' :
@@ -1031,11 +1075,17 @@ const App = ({ logLLMRequest }) => {
                                     ''
                                   }
                                 >
-                                  {result.status}
+                                  {isAccepted ? '✓' : result.status}
                                 </span>
                               </Td>
                               <Td dataLabel="Suggestion" style={{ color: 'var(--pf-v6-global--Color--200)', position: 'relative' }}>
-                                {result.suggestion}
+                                {isAccepted ? (
+                                  <span style={{ fontStyle: 'italic' }}>
+                                    {allChildrenAccepted ? 'All suggestions accepted' : 'Suggestion accepted'}
+                                  </span>
+                                ) : (
+                                  result.suggestion
+                                )}
                               </Td>
                             </Tr>
                             {isExpandable && isExpanded && (
@@ -1052,39 +1102,43 @@ const App = ({ logLLMRequest }) => {
                                             ? (typeof cell.source === 'string' ? cell.source : cell.source.join('')).split('\n')[0].slice(0, 80)
                                             : '';
                                         }
-                                        // Find the status for this cell (if per-cell status is needed, otherwise use result.status)
-                                        // For now, use the main status
+                                        // Check if this specific cell-review pair has been accepted
+                                        const isCellAccepted = acceptedSuggestions.has(`${result.id}-${cellIdx}`);
                                         return (
                                           <li
                                             key={cellIdx}
                                             style={{
                                               marginBottom: 6,
                                               fontSize: 13,
-                                              cursor: 'pointer',
-                                              background: '#f3f3fa',
+                                              cursor: isCellAccepted ? 'default' : 'pointer',
+                                              background: isCellAccepted ? '#f8f8f8' : '#f3f3fa',
                                               borderRadius: 4,
                                               padding: '6px 8px',
                                               transition: 'background 0.2s',
                                               marginLeft: -8,
                                               marginRight: -8,
+                                              opacity: isCellAccepted ? 0.6 : 1,
                                             }}
                                             onClick={e => {
-                                              e.stopPropagation();
-                                              handleReviewRowClick([cellIdx], result.status);
+                                              if (!isCellAccepted) {
+                                                e.stopPropagation();
+                                                handleReviewRowClick([cellIdx], result.status);
+                                              }
                                             }}
-                                            onMouseOver={e => (e.currentTarget.style.background = '#e6e6f7')}
-                                            onMouseOut={e => (e.currentTarget.style.background = '#f3f3fa')}
+                                            onMouseOver={e => !isCellAccepted && (e.currentTarget.style.background = '#e6e6f7')}
+                                            onMouseOut={e => !isCellAccepted && (e.currentTarget.style.background = '#f3f3fa')}
                                           >
-                                            <span style={{ fontWeight: 500 }}>Cell {cellIdx + 1}:</span>
+                                            <span style={{ fontWeight: 500, color: isCellAccepted ? 'var(--pf-v6-global--Color--200)' : undefined }}>Cell {cellIdx + 1}:</span>
                                             <span style={{ marginLeft: 8, color: '#888' }}>{preview}</span>
                                             <span style={{ marginLeft: 12 }} title={
+                                              isCellAccepted ? 'Suggestion accepted' :
                                               result.status === '✅' ? 'Meets expectations' :
                                               result.status === '🔹' ? 'Could be improved' :
                                               result.status === '❌' ? 'Missing' :
                                               result.status === '➖' ? 'Not applicable' :
                                               ''
                                             }>
-                                              {result.status}
+                                              {isCellAccepted ? '✓' : result.status}
                                             </span>
                                           </li>
                                         );
