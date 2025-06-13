@@ -145,5 +145,4 @@ console.log('Code Documentation Quality:',
     ```bash
     npm run dev
     ```
-7.   Open in Browser
-   Navigate to the provided address. You can now drag and drop `.ipynb` files into the left panel to test the review functionality locally.
+7.   Open in a browser and navigate to the provided address. You can now drag and drop `.ipynb` files into the left panel to test the review functionality locally.
