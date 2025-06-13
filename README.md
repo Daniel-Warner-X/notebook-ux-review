@@ -1,12 +1,12 @@
 # UX Reviews For Jupyter Notebooks
 
-This is an experimental design for automating UX reviews for Jupyter Notebooks based on [this framework](https://github.com/instructlab/examples/blob/main/Notebook-UX-Review-Template.md). The repo contains several prototypes including a web-based UI for conducting reviews.
+This is an experimental design for automating UX reviews for Jupyter Notebooks based on [this framework](design-path/prd/justins-review-framework.md). The repo contains several prototypes including a web-based UI for conducting reviews.
 
 [720.webm](https://github.com/user-attachments/assets/9ec72930-c5b9-4408-aa9e-439c07851122)
 
 ## Goals
 
-When developing complex notebooks for handoff it can be hard to ensure the intent and logic of the author are easy for others to follow. The goal of this project is to help notebook authors provide consistent, helpful guidance for end users. The ususal UX goals of concise and complete copy, and minimal clutter apply, as do the standards set out by the [notebook review template ](/product-requirements/justins-review-framework.md) to make the experience of using a notebook more intuitive and less error-prone.
+When developing complex notebooks for handoff it can be hard to ensure the intent and logic of the author are easy for others to follow. The goal of this project is to help notebook authors provide consistent, helpful guidance for end users. The ususal UX goals of concise and complete copy, and minimal clutter apply, as do the standards set out by the [notebook review template ](/design-path/prd/justins-review-framework.md) to make the experience of using a notebook more intuitive and less error-prone.
 
 ## Design Path
 
