@@ -1,8 +1,8 @@
-[720.webm](https://github.com/user-attachments/assets/9ec72930-c5b9-4408-aa9e-439c07851122)
-
 # UX Reviews For Jupyter Notebooks
 
 This is an experimental design for automating UX reviews for Jupyter Notebooks based on [this framework](https://github.com/instructlab/examples/blob/main/Notebook-UX-Review-Template.md). The repo contains several prototypes including a web-based UI for conducting reviews.
+
+[720.webm](https://github.com/user-attachments/assets/9ec72930-c5b9-4408-aa9e-439c07851122)
 
 ## Goals
 
