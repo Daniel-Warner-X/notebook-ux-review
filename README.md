@@ -10,7 +10,7 @@ When developing complex notebooks for handoff it can be hard to ensure the inten
 
 ## Design Path
 
-- **Started with Gemini Canvas** - With a very [basic planning prompt](/design-path/key-artifacts/original-prompt.md) Gemini created the core static analysis stub that would enable the rest of the explortation
+- **Started with Gemini Canvas** - With a very [basic planning prompt](/design-path/key-artifacts/original-prompt.md) Gemini created the [core static analysis stub](/design-path/key-artifacts/original-static-analysis-gemini-response.js) that would enable the rest of the explortation
 
 - **GitHub Action** - I tried running the analyzer as [a GitHub action](.github/workflows/notebook-review-demo.yml) that reviews PRs that create or change Jupyter Notebooks. You can see the results of this check if you open a PR against this repo with a new or updated Jupyter Notebook. It works, but was is ideal for experimentation and prototyping because it isn't flexible enough to be useful for exploring all the stages involved with creating an excellent notebook review. Also, there is a lot of overhead in testing this method.
 
