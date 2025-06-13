@@ -115,56 +115,35 @@ console.log('Code Documentation Quality:',
 
 ## Run the Web UI Locally
 
-### 0. Create a .env file in the notebook-reviewer-app directory containing the environment variables for your LLM endpoint and API Key.
+1.  **Clone the repository:**
+    ```bash
+    git clone git@github.com:Daniel-Warner-X/notebook-ux-review.git
+    ```
 
-```
-VITE_LLM_API_KEY="Your API Key Goes Here"
-VITE_LLM_API_ENDPOINT="Your API Endpoint URL Goes Here"
-```
+2.  **Navigate to the project directory:**
+    ```bash
+    cd notebook-ux-review
+    ```
 
-### 1. Create a New React Project
+3.  **Navigate to the application directory:**
+    ```bash
+    cd notebook-reviewer-app
+    ```
 
-Use Vite to scaffold a new React app:
+4.  **Install application dependencies:**
+    ```bash
+    npm install
+    ```
 
-```sh
-npm create vite@latest notebook-reviewer-app -- --template react
-```
+5. **Create a `.env` file with your LLM API endpoint and key:**
+   ```bash
+    VITE_LLM_API_KEY="Your API Key Goes Here"
+    VITE_LLM_API_ENDPOINT="Your API Endpoint URL Goes Here"
+    ```
 
-- Choose **React** for the framework.
-- Choose **JavaScript** (or TypeScript if you prefer).
-
-Navigate into your project directory:
-
-```sh
-cd notebook-reviewer-app
-```
-
-### 2. Install Project Dependencies
-
-```sh
-npm install
-npm install marked
-```
-
-### 3. Update `App.jsx`/`App.js`
-
-- Replace all content in `src/App.jsx` (or `src/App.js`) with the provided code.
-- At the top of your file, import `marked`:
-
-  ```js
-  import React, { useState, useEffect, useRef } from 'react';
-  import { marked } from 'marked';
-  ```
-
-### 4. Start the Development Server
-
-```sh
-npm run dev
-```
-
-Open the local URL shown in your terminal (e.g., [http://localhost:5173/](http://localhost:5173/)).
-
-### 5. Open in Browser
-
-Navigate to the provided address.  
-You can now drag and drop `.ipynb` files into the left panel to test the review functionality locally!
+6.  **Start the development server:**
+    ```bash
+    npm run dev
+    ```
+7.   Open in Browser
+   Navigate to the provided address. You can now drag and drop `.ipynb` files into the left panel to test the review functionality locally.
