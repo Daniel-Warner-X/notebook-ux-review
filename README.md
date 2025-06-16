@@ -6,7 +6,7 @@ This is an experimental design for automating UX reviews for Jupyter Notebooks b
 
 ## Goals
 
-When developing complex notebooks for handoff it can be hard to ensure the intent and logic of the author are easy for others to follow. The goal of this project is to help notebook authors provide consistent, helpful guidance for end users. The ususal UX goals of concise and complete copy, and minimal clutter apply, as do the standards set out by the [notebook review template ](/design-path/prd/justins-review-framework.md) to make the experience of using a notebook more intuitive and less error-prone.
+When developing complex notebooks for handoff it can be hard to ensure the intent and logic of the author are easy for others to follow. The goal of this project is to help notebook authors of varied backgrounds and levels of technical expertise provide consistent, helpful guidance for end users. The usual UX goals of concise and complete copy, and minimal clutter apply, as do the standards set out by the [notebook review template ](/design-path/prd/justins-review-framework.md) to make the experience of using a notebook more intuitive and less error-prone.
 
 ## Design Path
 
